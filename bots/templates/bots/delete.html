@@ -1,0 +1,19 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+<div id="menu">
+
+{% block content %}
+<br/>
+<h1>Bulk delete from configuration, user scripts etc.</h1>
+<p>&nbsp;!Deletions can NOT be undone!</p>
+<br/>
+<form action="/delete" method="POST" enctype="multipart/form-data">{% csrf_token %}
+    <table>
+        {{ form }}
+    </table>
+    <br/>&nbsp;
+    <input type="submit" name="cancel" value="{% trans 'Cancel' %}" />
+    <input type="submit" name="submit" value="{% trans 'Bulk delete' %}" />
+</form>
+{% endblock %}

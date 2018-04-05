@@ -1,0 +1,20 @@
+Metadata-Version: 1.1
+Name: bots
+Version: 3.2.0
+Summary: Bots open source edi translator
+Home-page: http://bots.sourceforge.net/
+Author: hjebbers
+Author-email: hjebbers@gmail.com
+License: GNU General Public License (GPL)
+Description: Bots is complete software for edi (Electronic Data Interchange): translate and communicate. All major edi data formats are supported: edifact, x12, tradacoms, xml
+Platform: OS Independent (Written in an interpreted language)
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: License :: OSI Approved :: GNU General Public License (GPL)
+Classifier: Topic :: Office/Business
+Classifier: Topic :: Office/Business :: Financial
+Classifier: Topic :: Other/Nonlisted Topic
+Classifier: Topic :: Communications
+Classifier: Environment :: Console
+Classifier: Environment :: Web Environment
