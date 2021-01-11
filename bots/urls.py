@@ -1,20 +1,19 @@
-#~ from django.conf.urls.defaults import patterns,include   #depreciated in 1.5
-from django.conf.urls import patterns,include,url           #does not work in django 1.3
+from django.conf.urls import include,url
 from django.contrib import admin
-#~ from django.views.generic.base import RedirectView
 from django.contrib.auth.decorators import login_required,user_passes_test
-import views
+from django.contrib.auth.views import login,logout,password_change,password_change_done
+from . import views
 
 admin.autodiscover()
 staff_required = user_passes_test(lambda u: u.is_staff)
 superuser_required = user_passes_test(lambda u: u.is_superuser)
 run_permission = user_passes_test(lambda u: u.has_perm('bots.change_mutex'))
 
-urlpatterns = patterns('',
-    url(r'^login.*', 'django.contrib.auth.views.login', {'template_name': 'admin/login.html'}),
-    url(r'^logout.*', 'django.contrib.auth.views.logout',{'next_page': '/'}),
-    url(r'^password_change/$', 'django.contrib.auth.views.password_change', name='password_change'),
-    url(r'^password_change/done/$', 'django.contrib.auth.views.password_change_done',name='password_change_done'),
+urlpatterns = [
+    url(r'^login.*', login, {'template_name': 'admin/login.html'}),
+    url(r'^logout.*', logout,{'next_page': '/'}),
+    url(r'^password_change/$', password_change, name='password_change'),
+    url(r'^password_change/done/$', password_change_done,name='password_change_done'),
     #login required
     url(r'^home.*', login_required(views.home)),
     url(r'^incoming.*', login_required(views.incoming)),
@@ -26,6 +25,7 @@ urlpatterns = patterns('',
     url(r'^confirm.*', login_required(views.confirm)),
     url(r'^filer.*', login_required(views.filer)),
     url(r'^srcfiler.*', login_required(views.srcfiler)),
+    url(r'^logfiler.*', login_required(views.logfiler)),
     #only staff
     url(r'^admin/$', login_required(views.home)),  #do not show django admin root page
     url(r'^admin/bots/$', login_required(views.home)),  #do not show django admin root page
@@ -41,6 +41,6 @@ urlpatterns = patterns('',
     url(r'^sendtestmail.*', superuser_required(views.sendtestmailmanagers)),
     #catch-all
     url(r'^.*', 'bots.views.index'),
-    )
+    ]
 
-handler500 = 'bots.views.server_error'
+handler500 = views.server_error

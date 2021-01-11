@@ -4,12 +4,11 @@ import datetime
 import re
 import django
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
-from django.utils.translation import ugettext as _
-import models
-import botsglobal
-from botsconfig import *
+from . import models
+from . import botsglobal
+from .botsconfig import *
 
-def save_int(value):
+def safe_int(value):
     try:
         return int(value)
     except:
@@ -58,7 +57,7 @@ def changepostparameters(post,soort):
             terugpost.pop(key)
     elif soort == '2process':
         #when going to process, most parameters are deleted.
-        for key in terugpost.keys():
+        for key in list(terugpost.keys()):
             if key not in ['datefrom','dateuntil','lastrun','idroute']: #keep these
                 terugpost.pop(key)
     elif soort == 'fromprocess':
@@ -82,7 +81,7 @@ def django_trace_origin(idta,where):
         '''
         for parent in get_parent(ta_object):
             donelijst.append(parent.idta)
-            for key,value in where.iteritems():
+            for key,value in where.items():
                 if getattr(parent,key) != value:
                     break
             else:   #all where-criteria are true; check if we already have this ta_object
@@ -120,7 +119,7 @@ def trace_document(pquery):
             except IndexError:
                 return    #no result, return
         if child.confirmasked:
-            taorg.confirmtext += u'%(confirmtype)s\n' % {'confirmasked':child.confirmasked,'confirmed':child.confirmed,'confirmtype':child.confirmtype}
+            taorg.confirmtext += '%(confirmtype)s\n' % {'confirmasked':child.confirmasked,'confirmed':child.confirmed,'confirmtype':child.confirmtype}
             taorg.confirmidta = child.confirmidta
         if child.status == EXTERNOUT:
             taorg.outgoing = child.idta
@@ -136,7 +135,7 @@ def trace_document(pquery):
             except IndexError:
                 return    #no result, return
         if parent.confirmasked:
-            taorg.confirmtext += u'%(confirmtype)s\n' % {'confirmasked':parent.confirmasked,'confirmed':parent.confirmed,'confirmtype':parent.confirmtype}
+            taorg.confirmtext += '%(confirmtype)s\n' % {'confirmasked':parent.confirmasked,'confirmed':parent.confirmed,'confirmtype':parent.confirmtype}
             taorg.confirmidta = parent.confirmidta
         if parent.status == EXTERNIN:
             taorg.incoming = parent.idta
@@ -144,7 +143,7 @@ def trace_document(pquery):
         trace_back(parent)
     #main for trace_document*****************
     for taorg in pquery.object_list:
-        taorg.confirmtext = u''
+        taorg.confirmtext = ''
         if taorg.status == SPLITUP:
             trace_back(taorg)
         else:
@@ -166,7 +165,7 @@ def delete_from_ta(ta_object):
     ''' try to delete in ta table as much as possible.
         until a MERGE, this is easy.
         but a MERGE can contain messages from other infiles...
-        in that case, just leave the MERGE 
+        in that case, just leave the MERGE
     '''
     def gather_tas_before_merge(ta_object):
         ''' loop over ta tree untill MERGE.
@@ -196,7 +195,7 @@ def delete_from_ta(ta_object):
     gather_tas_before_merge(ta_object)
     tas_merge = list(set(tas_merge))        #one MERGE only once in list
     for ta_merge in tas_merge:  #for each MERGE ta:
-        #if all included files in the MERGED file are to be deleted, MERGED can be deleted 
+        #if all included files in the MERGED file are to be deleted, MERGED can be deleted
         for includedta in models.ta.objects.filter(idta__range=(ta_merge.script,ta_merge.idta),child=ta_merge.idta):    #select all db-ta_object's included in MERGED ta_object
             if includedta not in tas_for_deletion:
                 break
@@ -247,15 +246,15 @@ def datetimeuntil():
 
 def handlepagination(requestpost,cleaned_data):
     ''' use requestpost to set criteria for pagination in cleaned_data'''
-    if "first" in requestpost:
+    if 'first' in requestpost:
         cleaned_data['page'] = 1
-    elif "previous" in requestpost:
+    elif 'previous' in requestpost:
         cleaned_data['page'] = cleaned_data['page'] - 1
-    elif "next" in requestpost:
+    elif 'next' in requestpost:
         cleaned_data['page'] = cleaned_data['page'] + 1
-    elif "last" in requestpost:
-        cleaned_data['page'] = sys.maxint
-    elif "order" in requestpost:   #change the sorting order
+    elif 'last' in requestpost:
+        cleaned_data['page'] = sys.maxsize
+    elif 'order' in requestpost:   #change the sorting order
         if requestpost['order'] == cleaned_data['sortedby']:  #sort same row, but desc->asc etc
             cleaned_data['sortedasc'] =  not cleaned_data['sortedasc']
         else:
@@ -296,7 +295,7 @@ def filterquery(query , org_cleaned_data, incoming=False, paginate=True):
         query = query.filter(infilename__contains=cleaned_data.pop('infilename'))
     if 'filename' in cleaned_data and cleaned_data['filename']:
         query = query.filter(filename__contains=cleaned_data.pop('filename'))
-    for key,value in cleaned_data.items():
+    for key,value in list(cleaned_data.items()):
         if not value:
             del cleaned_data[key]
     query = query.filter(**cleaned_data)

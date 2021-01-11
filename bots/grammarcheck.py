@@ -1,16 +1,19 @@
+from __future__ import print_function
 import sys
 import os
 import atexit
 import glob
 import logging
-import botsinit
-import botslib
-import grammar
-import botsglobal
+#Bots-modules
+from . import botsinit
+from . import botslib
+from . import grammar
+from . import botsglobal
+from .botsconfig import *
 
 
 def startmulti(grammardir,editype):
-    ''' specialized tool for bulk checking of grammars while developing botsgrammars 
+    ''' specialized tool for bulk checking of grammars while developing botsgrammars
         grammardir: directory with gramars (eg bots/usersys/grammars/edifact)
         editype: eg edifact
     '''
@@ -19,7 +22,7 @@ def startmulti(grammardir,editype):
     process_name = 'grammarcheck'
     botsglobal.logger = botsinit.initenginelogging(process_name)
     atexit.register(logging.shutdown)
-    
+
     for filename in glob.iglob(grammardir):
         filename_basename = os.path.basename(filename)
         if filename_basename in ['__init__.py','envelope.py']:
@@ -30,12 +33,11 @@ def startmulti(grammardir,editype):
             continue
         filename_noextension = os.path.splitext(filename_basename)[0]
         try:
-            grammar.grammarread(editype,filename_noextension)
+            grammar.grammarread(editype,filename_noextension,typeofgrammarfile='grammars')
         except:
-            print botslib.txtexc()
-            print '\n'
+            print(botslib.txtexc(),end='\n\n')
         else:
-            print 'OK - no error found in grammar',filename,'\n'
+            print('OK - no error found in grammar',filename,end='\n\n')
 
 
 def start():
@@ -43,9 +45,9 @@ def start():
     #********command line arguments**************************
     usage = '''
     This is "%(name)s" version %(version)s, part of Bots open source edi translator (http://bots.sourceforge.net).
-    Checks a Bots grammar. Same checks are used as in translations with bots-engine. Searches for grammar in 
+    Checks a Bots grammar. Same checks are used as in translations with bots-engine. Searches for grammar in
     regular place: bots/usersys/grammars/<editype>/<messagetype>.py  (even if a path is passed).
-    
+
     Usage:  %(name)s  -c<directory> <editype> <messagetype>
        or   %(name)s  -c<directory> <path to grammar>
     Options:
@@ -53,7 +55,7 @@ def start():
     Examples:
         %(name)s -cconfig  edifact  ORDERSD96AUNEAN008
         %(name)s -cconfig  C:/python27/lib/site-packages/bots/usersys/grammars/edifact/ORDERSD96AUNEAN008.py
-        
+
     '''%{'name':os.path.basename(sys.argv[0]),'version':botsglobal.version}
     configdir = 'config'
     editype =''
@@ -62,10 +64,10 @@ def start():
         if arg.startswith('-c'):
             configdir = arg[2:]
             if not configdir:
-                print 'Error: configuration directory indicated, but no directory name.'
+                print('Error: configuration directory indicated, but no directory name.')
                 sys.exit(1)
-        elif arg in ["?", "/?",'-h', '--help'] or arg.startswith('-'):
-            print usage
+        elif arg in ['?', '/?','-h', '--help'] or arg.startswith('-'):
+            print(usage)
             sys.exit(0)
         else:
             if os.path.isfile(arg):
@@ -73,13 +75,13 @@ def start():
                 editype = os.path.basename(p1)
                 messagetype,ext = os.path.splitext(p2)
                 messagetype = unicode(messagetype)
-                print 'grammarcheck',editype,messagetype
+                print('grammarcheck',editype,messagetype)
             elif not editype:
                 editype = arg
             else:
                 messagetype = arg
     if not (editype and messagetype):
-        print 'Error: both editype and messagetype, or a file path, are required.'
+        print('Error: both editype and messagetype, or a file path, are required.')
         sys.exit(1)
     #***end handling command line arguments**************************
     botsinit.generalinit(configdir)     #find locating of bots, configfiles, init paths etc.
@@ -88,12 +90,12 @@ def start():
     atexit.register(logging.shutdown)
 
     try:
-        grammar.grammarread(editype,messagetype)
+        grammar.grammarread(editype,messagetype,typeofgrammarfile='grammars')
     except:
-        print 'Found error in grammar: ',botslib.txtexc()
+        print('Found error in grammar: ',botslib.txtexc())
         sys.exit(1)
     else:
-        print 'OK - no error found in grammar'
+        print('OK - no error found in grammar')
         sys.exit(0)
 
 

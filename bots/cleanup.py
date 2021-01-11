@@ -1,13 +1,13 @@
+import sys
 import os
 import glob
 import time
 import datetime
 import stat
 import shutil
-from django.utils.translation import ugettext as _
-#bots modules
-import botslib
-import botsglobal
+#bots-modules
+from . import botslib
+from . import botsglobal
 #~ from botsconfig import *
 
 
@@ -15,10 +15,10 @@ def cleanup(do_cleanup_parameter,userscript,scriptname):
     ''' public function, does all cleanup of the database and file system.
         most cleanup functions are by default done only once a day.
     '''
-    if botsglobal.ini.getboolean('acceptance','runacceptancetest',False): # no cleanup during acceptance testing
-        return
     whencleanup = botsglobal.ini.get('settings','whencleanup','daily')
-    if do_cleanup_parameter:  #if explicit indicated via commandline parameter 
+    if botsglobal.ini.getboolean('acceptance','runacceptancetest',False):  #no cleanup during acceptance testing
+        do_full_cleanup = False
+    elif do_cleanup_parameter:  #if explicit indicated via commandline parameter
         do_full_cleanup = True
     elif whencleanup in ['always','daily']:
         #perform full cleanup only first run of the day.
@@ -28,29 +28,29 @@ def cleanup(do_cleanup_parameter,userscript,scriptname):
         else:
             do_full_cleanup = False
     else:
-        do_full_cleanup = False
+        do_full_cleanup = False     #this does not happen
     try:
         if do_full_cleanup:
-            botsglobal.logger.info(u'Cleanup files')
+            botsglobal.logger.info('Cleanup files')
             _cleandatafile()
             _cleanarchive()
-            botsglobal.logger.info(u'Cleanup database')
+            botsglobal.logger.info('Cleanup database')
             _cleanupsession()
             _cleanpersist()
             _cleantransactions()
-            botsglobal.logger.info(u'Vacuum database')
             _vacuum()
             # postcleanup user exit in botsengine script
             botslib.tryrunscript(userscript,scriptname,'postcleanup',whencleanup=whencleanup)
-            botsglobal.logger.info(u'Done full cleanup.')
+            botsglobal.logger.info('Done full cleanup.')
         _cleanrunsnothingreceived()          #do this every run, but not logged
     except:
-        botsglobal.logger.exception(u'Cleanup error.')
+        botsglobal.logger.exception('Cleanup error.')
 
 
 def _vacuum():
     ''' Do VACUUM on sqlite database.'''
     if botsglobal.settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
+        botsglobal.logger.info('Vacuum database')
         botsglobal.db.execute('''VACUUM''')
 
 
@@ -91,7 +91,7 @@ def _cleandatafile():
             try:
                 os.remove(filename) #remove files - should be no files in root of data dir
             except:
-                botsglobal.logger.exception(_(u'Cleanup could not remove file'))
+                botsglobal.logger.exception('Cleanup could not remove file')
         elif statinfo.st_mtime > vanaf :
             continue #directory is newer than maxdays, which is also true for the data files in it. Skip it.
         else:   #check files in dir and remove all older than maxdays
@@ -105,12 +105,12 @@ def _cleandatafile():
                     try:
                         os.remove(filename2)
                     except:
-                        botsglobal.logger.exception(_(u'Cleanup could not remove file'))
+                        botsglobal.logger.exception('Cleanup could not remove file')
             if emptydir:
                 try:
                     os.rmdir(filename)
                 except:
-                    botsglobal.logger.exception(_(u'Cleanup could not remove directory'))
+                    botsglobal.logger.exception('Cleanup could not remove directory')
 
 
 def _cleanpersist():
@@ -137,7 +137,7 @@ def _cleantransactions():
 
 
 def _cleanrunsnothingreceived():
-    ''' delete all report off new runs that received no files and no process errors.
+    ''' delete reports of new runs without received files and without process errors.
         #20120830: if new run with nothing received and no process errors: ta's are already deleted in automaticmaintenance.
     '''
     vanaf = datetime.datetime.today() - datetime.timedelta(hours=botsglobal.ini.getint('settings','hoursrunwithoutresultiskept',1))
@@ -146,6 +146,6 @@ def _cleanrunsnothingreceived():
                         WHERE ts < %(vanaf)s
                         AND ts >= %(onlycheckrunsofoneday)s
                         AND type = 'new'
-                        AND lastreceived=0 
+                        AND lastreceived=0
                         AND processerrors=0 ''',
                        {'vanaf':vanaf,'onlycheckrunsofoneday':onlycheckrunsofoneday})

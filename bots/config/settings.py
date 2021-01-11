@@ -1,6 +1,7 @@
-# Django settings for bots project.
+from __future__ import unicode_literals
 import os
 import bots
+# Django settings for bots project.
 PROJECT_PATH = os.path.abspath(os.path.dirname(bots.__file__))
 
 #*******settings for sending bots error reports via email**********************************
@@ -28,7 +29,7 @@ DATABASES = {
         'OPTIONS': {},      #not needed for SQLite
         }
     }
-#MySQL:
+#~ #MySQL:
 #~ DATABASES = {
     #~ 'default': {
         #~ 'ENGINE': 'django.db.backends.mysql',
@@ -68,6 +69,10 @@ LANGUAGE_CODE = 'en-us'
 #~ LANGUAGE_CODE = 'nl'
 USE_I18N = True
 
+LOCALE_PATHS = (
+    os.path.join(PROJECT_PATH, 'locale'),
+    )
+
 #*************************************************************************
 #*********other django setting. please consult django docs.***************
 #*************************************************************************
@@ -88,56 +93,73 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True      #True: always log in when browser is
 SESSION_COOKIE_AGE = 3600                   #seconds a user needs to login when no activity
 SESSION_SAVE_EVERY_REQUEST = True           #if True: SESSION_COOKIE_AGE is interpreted as: since last activity
 
-#set in bots.ini
-#~ DEBUG = True
-#~ TEMPLATE_DEBUG = DEBUG
-SITE_ID = 1
+DEBUG = False
+TEMPLATE_DEBUG = False
+SITE_ID = 123
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = 'm@-u37qiujmeqfbu$daaaaz)sp^7an4u@h=wfx9dd$$$zl2i*x9#awojdc'
+SECRET_KEY = 'm@-u37qiujmeqfbu$daaaaz)sp^7an4u@ddh=wfx9dd$$$zl2i*x9#awojdc'
 
 #*******template handling and finding*************************************************************************
-# List of callables that know how to import templates from various sources.
-#disable because these used values are the default values 
-#~ TEMPLATE_LOADERS = (
-    #~ 'django.template.loaders.filesystem.Loader',
-    #~ 'django.template.loaders.app_directories.Loader',
-    #~ )
+TEMPLATES = [       #django >=1.8
+    {
+    'BACKEND': 'django.template.backends.django.DjangoTemplates',
+    'DIRS': [
+        os.path.join(PROJECT_PATH, 'templates'),
+        ],
+    'APP_DIRS': True,
+    'OPTIONS': {
+        'context_processors': [
+            'django.contrib.auth.context_processors.auth',
+            #~ 'django.template.context_processors.debug',
+            'django.template.context_processors.i18n',
+            'django.template.context_processors.media', #
+            'django.template.context_processors.static', #
+            'django.template.context_processors.tz',
+            'django.contrib.messages.context_processors.messages',
+            'bots.bots_context.set_context',
+            ],
+        },
+    },
+]
 
-TEMPLATE_DIRS = (
+TEMPLATE_CONTEXT_PROCESSORS = (       #django <=1.7
+    'django.contrib.auth.context_processors.auth', 
+    #~ 'django.core.context_processors.debug',
+    'django.core.context_processors.i18n',
+    'django.core.context_processors.request',
+    'django.contrib.messages.context_processors.messages',
+    'django.core.context_processors.static', #
+    'bots.bots_context.set_context',
+    )
+TEMPLATE_DIRS = (       #django <=1.7
     os.path.join(PROJECT_PATH, 'templates'),
-    # Put strings here, like '/home/html/django_templates' or 'C:/www/django/templates'.
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
     )
 #*******includes for django*************************************************************************
-LOCALE_PATHS = (
-    os.path.join(PROJECT_PATH, 'locale'),
-    )
 #save uploaded file (=plugin) always to file. no path for temp storage is used, so system default is used.
 FILE_UPLOAD_HANDLERS = (
     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
     )
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (       #django >=1.10
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    )
+MIDDLEWARE_CLASSES = (       #django <=1.9
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'bots.persistfilters.FilterPersistMiddleware',
     )
 INSTALLED_APPS = (
+    'django.contrib.staticfiles', #
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.admin',
     'django.contrib.messages',
     'bots',
-    )
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth', 
-    'django.core.context_processors.debug',
-    'django.core.context_processors.i18n',
-    'django.core.context_processors.request',
-    'django.contrib.messages.context_processors.messages',
-    'django.core.context_processors.static',
-    'bots.bots_context.set_context',
     )

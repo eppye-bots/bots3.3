@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import sys
 import os
-import botsinit
-import botsglobal
+from . import botsinit
+from . import botsglobal
 
 
 def start():
@@ -16,17 +17,17 @@ def start():
         %(name)s  -c<directory>
     Options:
         -c<directory>   directory for configuration files (default: config).
-        
+
     '''%{'name':os.path.basename(sys.argv[0]),'version':botsglobal.version}
     configdir = 'config'
     for arg in sys.argv[1:]:
         if arg.startswith('-c'):
             configdir = arg[2:]
             if not configdir:
-                print 'Error: configuration directory indicated, but no directory name.'
+                print('Error: configuration directory indicated, but no directory name.')
                 sys.exit(1)
         else:
-            print usage
+            print(usage)
             sys.exit(0)
     #***end handling command line arguments**************************
     botsinit.generalinit(configdir)     #find locating of bots, configfiles, init paths etc.
@@ -35,7 +36,7 @@ def start():
     index_filename = os.path.join(usersys,'index.py')
     dummy_for_cleaned_data = {'databaseconfiguration':True,'umlists':botsglobal.ini.getboolean('settings','codelists_in_plugin',True),'databasetransactions':False}
     pluglib.make_index(dummy_for_cleaned_data,index_filename)
-    
+
 
 if __name__ == '__main__':
     start()
