@@ -87,28 +87,36 @@ ALLOWED_HOSTS = ['*']
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True      #True: always log in when browser is closed
 SESSION_COOKIE_AGE = 3600                   #seconds a user needs to login when no activity
 SESSION_SAVE_EVERY_REQUEST = True           #if True: SESSION_COOKIE_AGE is interpreted as: since last activity
+SESSION_COOKIE_NAME = 'Bots-0001'           #make this unique for each environment if you need to log in to multiple at the same time
 
 #set in bots.ini
 #~ DEBUG = True
-#~ TEMPLATE_DEBUG = DEBUG
 SITE_ID = 1
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'm@-u37qiujmeqfbu$daaaaz)sp^7an4u@h=wfx9dd$$$zl2i*x9#awojdc'
 
 #*******template handling and finding*************************************************************************
-# List of callables that know how to import templates from various sources.
-#disable because these used values are the default values 
-#~ TEMPLATE_LOADERS = (
-    #~ 'django.template.loaders.filesystem.Loader',
-    #~ 'django.template.loaders.app_directories.Loader',
-    #~ )
-
-TEMPLATE_DIRS = (
+# new TEMPLATES structure for Django 1.8+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
     os.path.join(PROJECT_PATH, 'templates'),
-    # Put strings here, like '/home/html/django_templates' or 'C:/www/django/templates'.
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    )
+        ],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.contrib.auth.context_processors.auth', 
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.request',
+                'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.static',
+                'bots.bots_context.set_context',
+            ],
+        },
+    },
+]
 #*******includes for django*************************************************************************
 LOCALE_PATHS = (
     os.path.join(PROJECT_PATH, 'locale'),
@@ -131,13 +139,4 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.messages',
     'bots',
-    )
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth', 
-    'django.core.context_processors.debug',
-    'django.core.context_processors.i18n',
-    'django.core.context_processors.request',
-    'django.contrib.messages.context_processors.messages',
-    'django.core.context_processors.static',
-    'bots.bots_context.set_context',
     )

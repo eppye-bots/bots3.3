@@ -332,7 +332,8 @@ def database2plug(db_table):
     plugs = serializers.serialize('python', db_table.objects.all())
     if plugs:
         app,tablename = plugs[0]['model'].split('.',1)
-        table = django.db.models.get_model(app,tablename)
+        #table = django.db.models.get_model(app,tablename)
+        table = django.apps.apps.get_model(app,tablename) # Django 1.9 fix
         pk = table._meta.pk.name
         #adapt plugs
         for plug in plugs:

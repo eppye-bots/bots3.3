@@ -30,7 +30,7 @@
         {% for row in queryset.object_list %}
             <tr  class="{% cycle 'row1' 'row2' %}">
                 <td>
-                    <div class="dropdown"><img class="action" src="/media/images/star.png" />
+                    <div class="dropdown"><img class="action" src="/media/images/icon-star-blue.svg" />
                         <ul>
                             <li><button class="botsheader" type="submit" name="report2incoming" value="{{row.idta}}" >{% trans 'View incoming' %}</button></li>
                             <li><button class="botsheader" type="submit" name="report2outgoing" value="{{row.idta}}" >{% trans 'View outgoing' %}</button></li>
@@ -42,12 +42,12 @@
                 </td>
                 <td>{% if row.status %}
                         {% if row.lasterror or row.lastok or row.lastopen %}
-                            <img src="/media/admin/img/icon_error.gif" style="width: 1em;"/>
+                            <img src="/media/images/icon-no.svg"/>
                         {% else %}
-                            <img src="/media/admin/img/icon_alert.gif" style="width: 1em;"/>
+                            <img src="/media/images/icon-alert.svg"/>
                         {% endif %}
                     {% else %}
-                        <img src="/media/admin/img/icon_success.gif" style="width: 1em;"/>
+                        <img src="/media/images/icon-yes.svg"/>
                     {% endif %}
                 </td>
                 <td>{{row.type}}</td>
