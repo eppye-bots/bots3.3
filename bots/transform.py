@@ -190,7 +190,8 @@ def _translate_one_file(row,routedict,endstatus,userscript,scriptname):
                 if inn_splitup.ta_info.get('KillWholeFile',False):
                     raise botslib.KillWholeFileException(msg)
                 txt = botslib.txtexc()
-                ta_splitup.update(statust=ERROR,errortext=txt,**inn_splitup.ta_info)   #update db. inn_splitup.ta_info could be changed by mappingscript. Is this useful?
+                inn_splitup.ta_info['errortext'] = txt
+                ta_splitup.update(statust=ERROR,**inn_splitup.ta_info)   #update db. inn_splitup.ta_info could be changed by mappingscript. Is this useful?
                 ta_splitup.deletechildren()
             else:
                 ta_splitup.update(statust=DONE, **inn_splitup.ta_info)   #update db. inn_splitup.ta_info could be changed by mappingscript. Is this useful?
