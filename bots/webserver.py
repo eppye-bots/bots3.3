@@ -47,7 +47,7 @@ def start():
 
     #***init cherrypy as webserver*********************************************
     #global configuration for cherrypy
-    cherrypy.config.update({'global': {'log.screen': botsglobal.ini.getint('webserver','log_console_level','INFO') == 'DEBUG'}})
+    cherrypy.config.update({'global': {'log.screen': botsglobal.ini.get('webserver','log_console_level','') == 'DEBUG'}}) # log to screen only for DEBUG level
     #setup handling of serving static files via cherrypy's tools
     static_config = {'/': {'tools.staticdir.on' : True,'tools.staticdir.dir' : 'media' ,'tools.staticdir.root': botsglobal.ini.get('directories','botspath')}}
     staticfile_app = cherrypy.tree.mount(None, '/media', static_config)    #None: no cherrypy application (as this only serves static files)
