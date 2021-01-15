@@ -166,6 +166,7 @@ def script_link1(script,linktext):
     ''' if script exists return a plain text name as link; else return "no" icon, plain text name
         used in translate (all scripts should exist, missing script is an error).
     '''
+    script = script.replace('.',os.sep,script.count('.')-1) # allow mapping script subdirs
     if os.path.exists(script):
         return '<a href="/srcfiler/?src=%s" target="_blank">%s</a>'%(urllib_quote(script.encode("utf-8")),linktext)
     else:

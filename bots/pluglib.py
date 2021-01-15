@@ -378,7 +378,7 @@ def plugout_files(cleaned_data):
     if cleaned_data['fileconfiguration']:       #gather from usersys
         files2return.extend(plugout_files_bydir(usersys,'usersys'))
         if not cleaned_data['charset']:     #if edifact charsets are not needed: remove them (are included in default bots installation).
-            charsetdirs = plugout_files_bydir(os.path.join(usersys,'charsets'),'usersys/charsets')
+            charsetdirs = plugout_files_bydir(os.path.join(usersys,'charsets'),os.path.join('usersys','charsets'))
             for charset in charsetdirs:
                 try:
                     index = files2return.index(charset)

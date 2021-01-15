@@ -16,10 +16,10 @@ def cleanup(do_cleanup_parameter,userscript,scriptname):
         most cleanup functions are by default done only once a day.
     '''
     whencleanup = botsglobal.ini.get('settings','whencleanup','daily')
-    if botsglobal.ini.getboolean('acceptance','runacceptancetest',False):  #no cleanup during acceptance testing
-        do_full_cleanup = False
-    elif do_cleanup_parameter:  #if explicit indicated via commandline parameter
+    if do_cleanup_parameter:  #if explicit indicated via commandline parameter 
         do_full_cleanup = True
+    elif botsglobal.ini.getboolean('acceptance','runacceptancetest',False): # no automatic cleanup during acceptance testing
+        return
     elif whencleanup in ['always','daily']:
         #perform full cleanup only first run of the day.
         cur_day = int(time.strftime('%Y%m%d'))    #get current date, convert to int
