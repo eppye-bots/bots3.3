@@ -735,12 +735,19 @@ def lookup_translation(frommessagetype,fromeditype,alt,frompartner,topartner):
         return None,None,None
 
 def botsinfo():
+    try: # cherrypy is optional, might be using apache instead
+        import cherrypy
+        cherrypy_version = cherrypy.__version__
+    except:
+        cherrypy_version = None
+
     return [
             ('served at port',botsglobal.ini.getint('webserver','port',8080)),
             ('platform',platform.platform()),
             ('machine',platform.machine()),
             ('python version',platform.python_version()),
-            ('django version',django.VERSION),
+            ('django version',django.__version__),
+            ('cherrypy version',cherrypy_version),
             ('bots version',botsglobal.version),
             ('bots installation path',botsglobal.ini.get('directories','botspath')),
             ('config path',botsglobal.ini.get('directories','config')),
