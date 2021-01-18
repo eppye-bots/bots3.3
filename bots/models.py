@@ -256,7 +256,7 @@ class channel(models.Model):
     apop = models.BooleanField(default=False,verbose_name='No check to-address',help_text='Do not check if incoming "to" email addresses is known.')       #20110104: used as 'no check on "to:" email address'
     remove = models.BooleanField(default=False,help_text='Delete incoming edi files after reading.<br>Use in production else files are read again and again.')
     path = StripCharField(max_length=256,blank=True)  #different from host - in ftp both host and path are used
-    filename = StripCharField(max_length=70,blank=True,help_text='Incoming: use wild-cards eg: "*.edi".<br>Outgoing: many options, see <a target="_blank" href="http://code.google.com/p/bots/wiki/Filenames">wiki</a>.<br>Advised: use "*" in filename (is replaced by unique counter per channel).<br>eg "D_*.edi" gives D_1.edi, D_2.edi, etc.')
+    filename = StripCharField(max_length=70,blank=True,help_text='Incoming: use wild-cards eg: "*.edi".<br>Outgoing: many options, see <a target="_blank" href="https://botsdocs.readthedocs.io/en/latest/configuration/channel/filenames.html">documentation</a>.<br>Advised: use "*" in filename (is replaced by unique counter per channel).<br>eg "D_*.edi" gives D_1.edi, D_2.edi, etc.')
     lockname = StripCharField(max_length=35,blank=True,verbose_name='Lock-file',help_text='Directory locking: if lock-file exists in directory, directory is locked for reading/writing.')
     syslock = models.BooleanField(default=False,verbose_name='System locks',help_text='Use system file locks for reading or writing edi files (windows, *nix).')
     parameters = StripCharField(max_length=70,blank=True,help_text='For use in user communication scripting.')
@@ -266,14 +266,14 @@ class channel(models.Model):
     askmdn = StripCharField(max_length=17,blank=True,choices=ENCODE_MIME,verbose_name='mime encoding')     #20100703: used to indicate mime-encoding
     sendmdn = StripCharField(max_length=17,blank=True,choices=EDI_AS_ATTACHMENT,verbose_name='as body or attachment')      #20120922: for email/mime: edi file as attachment or in body
     mdnchannel = StripCharField(max_length=35,blank=True,verbose_name='Tmp-part file name',help_text='Write file than rename. Bots renames to filename without this tmp-part.<br>Eg first write "myfile.edi.tmp", tmp-part is ".tmp", rename to "myfile.edi".')      #20140113:use as tmp part of file name
-    archivepath = StripCharField(max_length=256,blank=True,verbose_name='Archive path',help_text='Write edi files to an archive.<br>See <a target="_blank" href="http://code.google.com/p/bots/wiki/Archiving">wiki</a>. Eg: "C:/edi/archive/mychannel".')           #added 20091028
+    archivepath = StripCharField(max_length=256,blank=True,verbose_name='Archive path',help_text='Write edi files to an archive.<br>See <a target="_blank" href="https://botsdocs.readthedocs.io/en/latest/deployment/archiving.html#the-long-term-archive">documentation</a>. Eg: "C:/edi/archive/mychannel".')           #added 20091028
     desc = models.TextField(max_length=256,null=True,blank=True,verbose_name='Description')
     rsrv1 = TextAsInteger(max_length=35,blank=True,null=True,verbose_name='Max failures',help_text='Max number of connection failures of incommunication before this is reported as a processerror (default: direct report).')      #added 20100501 #20140315: used as max_com
     rsrv2 = models.IntegerField(null=True,blank=True,verbose_name='Max seconds',help_text='Max seconds for in-communication channel to run. Purpose: limit incoming edi files; for large volumes it is better read more often than all files in one time.')   #added 20100501. 20110906: max communication time.
     rsrv3 = models.IntegerField(null=True,blank=True,verbose_name='Max days archive',help_text='Max number of days files are kept in archive.<br>Overrules global setting in bots.ini.')   #added 20121030. #20131231: use as maxdaysarchive
     keyfile = StripCharField(max_length=256,blank=True,null=True,verbose_name='Private key file',help_text='Path to file that contains PEM formatted private key.')          #added 20121201
     certfile = StripCharField(max_length=256,blank=True,null=True,verbose_name='Certificate chain file',help_text='Path to file that contains PEM formatted certificate chain.')          #added 20121201
-    testpath = StripCharField(max_length=256,blank=True,verbose_name='Acceptance test path',help_text='Path used during acceptance tests, see <a target="_blank" href="http://code.google.com/p/bots/wiki/DeploymentAcceptance">wiki</a>.')           #added 20120111
+    testpath = StripCharField(max_length=256,blank=True,verbose_name='Acceptance test path',help_text='Path used during acceptance tests, see <a target="_blank" href="https://botsdocs.readthedocs.io/en/latest/advanced-deployment/change-management.html#isolated-acceptance-testing">documentation</a>.')           #added 20120111
 
     def communicationscript(self):
         return script_link2(os.path.join(botsglobal.ini.get('directories','usersysabs'),'communicationscripts', self.idchannel + '.py'))
