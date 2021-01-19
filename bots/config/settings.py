@@ -67,7 +67,7 @@ TIME_ZONE = 'Europe/Amsterdam'
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
 #~ LANGUAGE_CODE = 'nl'
-USE_I18N = True
+USE_I18N = False
 
 LOCALE_PATHS = (
     os.path.join(PROJECT_PATH, 'locale'),
@@ -111,7 +111,6 @@ TEMPLATES = [       #django >=1.8
         'context_processors': [
             'django.contrib.auth.context_processors.auth',
             #~ 'django.template.context_processors.debug',
-            'django.template.context_processors.i18n',
             'django.template.context_processors.media', #
             'django.template.context_processors.static', #
             'django.template.context_processors.tz',
@@ -125,7 +124,6 @@ TEMPLATES = [       #django >=1.8
 TEMPLATE_CONTEXT_PROCESSORS = (       #django <=1.7
     'django.contrib.auth.context_processors.auth', 
     #~ 'django.core.context_processors.debug',
-    'django.core.context_processors.i18n',
     'django.core.context_processors.request',
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.static', #

@@ -66,7 +66,7 @@ TIME_ZONE = 'Europe/Amsterdam'
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
 #~ LANGUAGE_CODE = 'nl'
-USE_I18N = True
+USE_I18N = False
 
 #*************************************************************************
 #*********other django setting. please consult django docs.***************
@@ -135,7 +135,6 @@ INSTALLED_APPS = (
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.auth.context_processors.auth', 
     'django.core.context_processors.debug',
-    'django.core.context_processors.i18n',
     'django.core.context_processors.request',
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.static',

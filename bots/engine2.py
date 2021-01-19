@@ -297,7 +297,7 @@ def translate(run):
                             inn_splitup.ta_info['alt'] = doalttranslation   #get the alt-value for the next chained translation
                         if number_of_loops_with_same_alt > 10:
                             raise botslib.BotsError('Mappingscript returns same alt value over and over again (infinite loop?). Alt: "%(doalttranslation)s".',{'doalttranslation':doalttranslation})
-                    #end of while-loop (trans**********************************************************************************
+                    #end of while-loop (translate) **********************************************************************************
                 #exceptions file_out-level: exception in mappingscript or writing of out-file
                 except:
                     #2 modes: either every error leads to skipping of  whole infile (old  mode) or errors in mappingscript/outfile only affect that branche
