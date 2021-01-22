@@ -34,7 +34,7 @@ class CcodeAdmin(BotsAdmin):
     search_fields = ('ccodeid__ccodeid','leftcode','rightcode','attr1','attr2','attr3','attr4','attr5','attr6','attr7','attr8')
     fieldsets = (
         (None, {'fields': ('ccodeid','leftcode','rightcode','attr1','attr2','attr3','attr4','attr5','attr6','attr7','attr8'),
-                'description': 'For description of user code lists and usage in mapping: see <a target="_blank" href="https://botsdocs.readthedocs.io/en/latest/configuration/mapping-scripts/code-conversion.html">documentation</a>.',
+                'description': 'For description of user code lists and usage in mapping: see <a target="_blank" href="<a target="_blank" href="https://botsdocs.readthedocs.io/en/latest/configuration/mapping-scripts/code-conversion.html">documentation</a>.',
                 'classes': ('',)
                }),
         )

@@ -1,14 +1,13 @@
 {% extends "admin/base.html" %}
-{% load i18n %}
 {% load botsfilters %}
 
 
 {% block content %}
 <form action="{{ form.action }}" method="post">{% csrf_token %}
-    <input onClick="history.back()" type="button" value="{% trans 'Back' %}" />
-    <input type="submit" name="2select" value="{% trans 'Change selection' %}" />
-    <input type="submit" name="2incoming" value="{% trans 'Incoming (same selection)' %}" />
-    <input type="submit" name="2outgoing" value="{% trans 'Outgoing (same selection)' %}" />
+    <input onClick="history.back()" type="button" value="Back" />
+    <input type="submit" name="2select" value="Change selection" />
+    <input type="submit" name="2incoming" value="Incoming (same selection)" />
+    <input type="submit" name="2outgoing" value="Outgoing (same selection)" />
     {% include "bots/paginator.html" %}
 
     <table id="botstable">
@@ -18,28 +17,28 @@
         <thead>
             <tr>
                 <th></th>
-                <th><button class="botsheader" type="submit" name="order" value="ts" >{% trans 'Date/time' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="filename" >{% trans 'File' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="confirmtype" title="">{% trans 'ConfirmType' %}</button></th>
-                <th><button class="botsheader" >{% trans 'ConfirmFile' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="editype" >{% trans 'Editype' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="messagetype" >{% trans 'Messagetype' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="idroute" >{% trans 'Route' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="fromchannel" >{% trans 'FromChannel' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="tochannel" >{% trans 'ToChannel' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="frompartner" >{% trans 'FromPartner' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="topartner" >{% trans 'ToPartner' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="reference" >{% trans 'Reference' %}</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="ts" >Date/time</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="filename" >File</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="confirmtype" title="">ConfirmType</button></th>
+                <th><button class="botsheader" >ConfirmFile</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="editype" >Editype</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="messagetype" >Messagetype</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="idroute" >Route</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="fromchannel" >FromChannel</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="tochannel" >ToChannel</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="frompartner" >FromPartner</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="topartner" >ToPartner</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="reference" >Reference</button></th>
             </tr>
         </thead>
         <tbody>
         {% for row in queryset.object_list %}
-            <tr class="{% cycle 'row1' 'row2' %}">
+            <tr class="{% cycle 'row1' 'row2">
                 <td>
                     <div class="dropdown"><img class="action" src="/media/images/icon-star-blue.svg" />
                         <ul>
-                            <li><button class="botsheader" onclick="document.location.href='/detail/?outidta={{row.idta}}'; return false;">{% trans 'View detail' %}</button></li>
-                            <li><button class="botsheader" type="submit" name="confirm" value="{{row.idta}}" >{% trans 'Confirm manual' %}</button></li>
+                            <li><button class="botsheader" onclick="document.location.href='/detail/?outidta={{row.idta}}'; return false;">View detail</button></li>
+                            <li><button class="botsheader" type="submit" name="confirm" value="{{row.idta}}" >Confirm manual</button></li>
                         </ul>
                     </div>
                 </td>
@@ -50,7 +49,7 @@
                         <a href="/filer/?action=this&amp;idta={{row.confirmidta}}" target="_blank" class="botslink">{{row.confirmidta}}</a>
                     {% else  %}
                         {% if row.confirmidta %}
-                            {% trans 'Manual confirm' %}
+                            Manual confirm
                         {% endif %}
                     {% endif %}</td>
                 <td class="nowrap">{{row.editype}}</td>

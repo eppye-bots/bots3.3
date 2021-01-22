@@ -1,15 +1,14 @@
 {% extends "admin/base.html" %}
-{% load i18n %}
 {% load botsfilters %}
 
 {% block content %}
 <form action="{{ form.action }}" method="post">{% csrf_token %}
-    <input onClick="history.back()" type="button" value="{% trans 'Back' %}" />
-    <input type="submit" name="2select" value="{% trans 'Change selection' %}" />
-    <input type="submit" name="2outgoing" value="{% trans 'Outgoing (same selection)' %}" />
-    <input type="submit" name="2process" value="{% trans 'Process Errors (same selection)' %}" />
-    <input type="submit" name="2confirm" value="{% trans 'Confirm (same selection)' %}" />
-    <input type="submit" name="rereceiveall" value="{% trans 'Rereceive All' %}" />
+    <input onClick="history.back()" type="button" value="Back" />
+    <input type="submit" name="2select" value="Change selection" />
+    <input type="submit" name="2outgoing" value="Outgoing (same selection)" />
+    <input type="submit" name="2process" value="Process Errors (same selection)" />
+    <input type="submit" name="2confirm" value="Confirm (same selection)" />
+    <input type="submit" name="rereceiveall" value="Rereceive All" />
     {% include "bots/paginator.html" %}
 
     <table id="botstable">
@@ -19,24 +18,24 @@
         <thead>
             <tr>
                 <th></th>
-                <th><button class="botsheader" type="submit" name="order" value="status" >{% trans 'Status' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="retransmit" >{% trans 'Rereceive' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="ts" >{% trans 'Date/time' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="idroute" >{% trans 'Route' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="fromchannel" >{% trans 'FromChannel' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="infilename" >{% trans 'InFile' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="ineditype" >{% trans 'InEditype' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="inmessagetype" >{% trans 'InMessagetype' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="nrmessages" >{% trans '#mes' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="filesize" >{% trans 'Size' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="tochannel" >{% trans 'ToChannel' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="outfilename" >{% trans 'OutFile' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="outeditype" >{% trans 'OutEditype' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="outmessagetype" >{% trans 'OutMessagetype' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="frompartner" >{% trans 'FromPartner' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="topartner" >{% trans 'ToPartner' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="errortext" >{% trans 'Error' %}</button></th>
-                <th><button class="botsheader" type="submit" name="order" value="divtext" >{% trans 'MappingScript' %}</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="status" >Status</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="retransmit" >Rereceive</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="ts" >Date/time</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="idroute" >Route</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="fromchannel" >FromChannel</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="infilename" >InFile</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="ineditype" >InEditype</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="inmessagetype" >InMessagetype</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="nrmessages" >#mes</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="filesize" >Size</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="tochannel" >ToChannel</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="outfilename" >OutFile</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="outeditype" >OutEditype</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="outmessagetype" >OutMessagetype</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="frompartner" >FromPartner</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="topartner" >ToPartner</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="errortext" >Error</button></th>
+                <th><button class="botsheader" type="submit" name="order" value="divtext" >MappingScript</button></th>
             </tr>
         </thead>
         <tbody>
@@ -45,9 +44,9 @@
                 <td>
                     <div class="dropdown"><img class="action" src="/media/images/icon-star-blue.svg" />
                         <ul>
-                            <li><button class="botsheader" onclick="document.location.href='/detail/?inidta={{row.idta}}'; return false;" >{% trans 'View detail' %}</button></li>
-                            <li><button class="botsheader" type="submit" name="retransmit" value="{{row.idta}}" >{% trans 'Rereceive' %}</button></li>
-                            <li><button class="botsheader" type="submit" name="delete" value="{{row.idta}}" >{% trans 'Delete file' %}</button></li>
+                            <li><button class="botsheader" onclick="document.location.href='/detail/?inidta={{row.idta}}'; return false;" >View detail</button></li>
+                            <li><button class="botsheader" type="submit" name="retransmit" value="{{row.idta}}" >Rereceive</button></li>
+                            <li><button class="botsheader" type="submit" name="delete" value="{{row.idta}}" >Delete file</button></li>
                         </ul>
                     </div>
                 </td>

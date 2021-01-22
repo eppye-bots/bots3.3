@@ -1,24 +1,23 @@
 {% extends "admin/base.html" %}
-{% load i18n %}
 
 {% block content %}
 <table id="about">
     <tr>
         <td>
-        <h1>{% trans 'Bots Open Source EDI Translator' %}</h1>
+        <h1>Bots Open Source EDI Translator</h1>
         <br/>
-        <a target="_blank" href="http://bots.readthedocs.io">{% trans 'Bots documentation' %}</a><br/>
-        <a target="_blank" href="http://groups.google.com/group/botsmail">{% trans 'Bots mailing list' %}</a><br/>
-        <a target="_blank" href="http://www.ebbersconsult.com">{% trans 'Commercial support by EbbersConsult' %}</a><br/>
+        <a target="_blank" href="http://bots.readthedocs.io">Bots documentation</a><br/>
+        <a target="_blank" href="http://groups.google.com/group/botsmail">Bots mailing list</a><br/>
+        <a target="_blank" href="http://www.ebbersconsult.com">Commercial support by EbbersConsult</a><br/>
         <br/>
         </td>
         <td></td>
     </tr>
     <tr>
-        <td>{% trans 'Current user' %}</td><td>{{ user.username }}</td>
+        <td>Current user</td><td>{{ user.username }}</td>
     </tr>
     <tr>
-        <td>{% trans 'Last login' %}</td><td>{{ user.last_login|date:"Y-m-d G:i" }}</td>
+        <td>Last login</td><td>{{ user.last_login|date:"Y-m-d G:i" }}</td>
     </tr>
     {% for key, value in botsinfo %}
         {% if value %}
