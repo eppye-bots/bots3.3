@@ -1,5 +1,5 @@
 import sys
-from urllib import quote as urllib_quote
+import urllib.parse
 import os
 import re
 from django.db import models
@@ -145,7 +145,7 @@ class StripCharField(models.CharField):
     def get_prep_value(self, value,*args,**kwargs):
         ''' Convert Python objects (value) to query values (returned)
         '''
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             return value.strip()
         else:
             return value
@@ -168,7 +168,7 @@ def script_link1(script,linktext):
     '''
     script = script.replace('.',os.sep,script.count('.')-1) # allow mapping script subdirs
     if os.path.exists(script):
-        return '<a href="/srcfiler/?src=%s" target="_blank">%s</a>'%(urllib_quote(script.encode("utf-8")),linktext)
+        return '<a href="/srcfiler/?src=%s" target="_blank">%s</a>'%(urllib.parse.quote(script),linktext)
     else:
         return '<img src="/media/admin/img/icon-no.svg"></img> %s'%linktext
 
@@ -177,7 +177,7 @@ def script_link2(script):
         used in routes, channels (scripts are optional)
     '''
     if os.path.exists(script):
-        return '<a class="nowrap" href="/srcfiler/?src=%s" target="_blank"><img src="/media/admin/img/icon-yes.svg"></img> view</a>'%urllib.quote(script.encode("utf-8"))
+        return '<a class="nowrap" href="/srcfiler/?src=%s" target="_blank"><img src="/media/admin/img/icon-yes.svg"></img> view</a>'%urllib.parse.quote(script)
     else:
         return '<img src="/media/admin/img/icon-no.svg"></img>'
 
@@ -207,7 +207,7 @@ class confirmrule(models.Model):
     rsrv1 = StripCharField(max_length=35,blank=True,null=True)  #added 20100501
     rsrv2 = models.IntegerField(null=True)                        #added 20100501
     def __str__(self):
-        return unicode(self.confirmtype) + ' ' + unicode(self.ruletype)
+        return str(self.confirmtype) + ' ' + str(self.ruletype)
     class Meta:
         db_table = 'confirmrule'
         verbose_name = 'confirm rule'
@@ -217,7 +217,7 @@ class ccodetrigger(models.Model):
     ccodeid = StripCharField(primary_key=True,max_length=35,verbose_name='Type of user code')
     ccodeid_desc = models.TextField(blank=True,null=True,verbose_name='Description')
     def __str__(self):
-        return unicode(self.ccodeid)
+        return str(self.ccodeid)
     class Meta:
         db_table = 'ccodetrigger'
         verbose_name = 'user code type'
@@ -237,7 +237,7 @@ class ccode(models.Model):
     attr7 = StripCharField(max_length=35,blank=True)
     attr8 = StripCharField(max_length=35,blank=True)
     def __str__(self):
-        return unicode(self.ccodeid) + ' ' + unicode(self.leftcode) + ' ' + unicode(self.rightcode)
+        return str(self.ccodeid) + ' ' + str(self.leftcode) + ' ' + str(self.rightcode)
     class Meta:
         db_table = 'ccode'
         verbose_name = 'user code'
@@ -322,7 +322,7 @@ class partner(models.Model):
         ordering = ['idpartner']
         db_table = 'partner'
     def __str__(self):
-        return unicode(self.idpartner) + ' (' + unicode(self.name) + ')'
+        return str(self.idpartner) + ' (' + str(self.name) + ')'
     def save(self, *args, **kwargs):
         if isinstance(self,partnergroep):
             self.isgroup = True
@@ -352,7 +352,7 @@ class chanpar(models.Model):
         verbose_name = 'email address per channel'
         verbose_name_plural = 'email address per channel'
     def __str__(self):
-        return unicode(self.idpartner) + ' ' + unicode(self.idchannel) + ' ' + unicode(self.mail)
+        return str(self.idpartner) + ' ' + str(self.idchannel) + ' ' + str(self.mail)
 @python_2_unicode_compatible
 class translate(models.Model):
     #~ id = models.IntegerField(primary_key=True)
@@ -395,7 +395,7 @@ class translate(models.Model):
         verbose_name = 'translation rule'
         ordering = ['fromeditype','frommessagetype','frompartner','topartner','alt']
     def __str__(self):
-        return unicode(self.fromeditype) + ' ' + unicode(self.frommessagetype) + ' ' + unicode(self.alt) + ' ' + unicode(self.frompartner) + ' ' + unicode(self.topartner)
+        return str(self.fromeditype) + ' ' + str(self.frommessagetype) + ' ' + str(self.alt) + ' ' + str(self.frompartner) + ' ' + str(self.topartner)
 
 @python_2_unicode_compatible
 class routes(models.Model):
@@ -440,7 +440,7 @@ class routes(models.Model):
         unique_together = (('idroute','seq'),)
         ordering = ['idroute','seq']
     def __str__(self):
-        return unicode(self.idroute) + ' ' + unicode(self.seq)
+        return str(self.idroute) + ' ' + str(self.seq)
     def translt(self):
         if self.translateind == 0:
             return '<img alt="%s" src="/media/images/icon-no.svg"></img>'%(self.get_translateind_display())

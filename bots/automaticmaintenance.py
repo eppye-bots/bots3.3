@@ -80,8 +80,8 @@ def email_error_report(rootidtaofrun):
         break
     else:
         raise botslib.PanicError('In generate report: could not find report?')
-    subject = '[Bots Error Report] %(time)s'%{'time':unicode(results['ts'])[:16]}
-    reporttext = 'Bots Report; type: %(type)s, time: %(time)s\n'%{'type':results['type'],'time':unicode(results['ts'])[:19]}
+    subject = '[Bots Error Report] %(time)s'%{'time':str(results['ts'])[:16]}
+    reporttext = 'Bots Report; type: %(type)s, time: %(time)s\n'%{'type':results['type'],'time':str(results['ts'])[:19]}
     reporttext += '    %d files received/processed in run.\n'%(results['lastreceived'])
     if results['lastdone']:
         reporttext += '    %d files without errors,\n'%(results['lastdone'])
@@ -113,7 +113,7 @@ def email_error_report(rootidtaofrun):
                                         AND statust=%(statust)s ''',
                                         {'rootidtaofrun':rootidtaofrun,'status':PROCESS,'statust':ERROR}):
                 reporttext += '\nProcess error:\n'
-                for key in row.keys():
+                for key in list(row.keys()):
                     reporttext += '%s: %s\n' % (key,row[key])
         # Include details about file errors in the email report; if debug is True: includes trace
         if results['lasterror'] or results['lastopen'] or results['lastok']:
@@ -123,7 +123,7 @@ def email_error_report(rootidtaofrun):
                                         AND statust!=%(statust)s ''',
                                         {'rootidtaofrun':rootidtaofrun,'statust':DONE}):
                 reporttext += '\nFile error:\n'
-                for key in row.keys():
+                for key in list(row.keys()):
                     reporttext += '%s: %s\n' % (key,row[key])
 
         botslib.sendbotserrorreport(subject,reporttext)

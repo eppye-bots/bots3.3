@@ -31,7 +31,7 @@ def start():
             sys.exit(0)
     #***end handling command line arguments**************************
     botsinit.generalinit(configdir)     #find locating of bots, configfiles, init paths etc.
-    import pluglib              #import here, import at start of file gives error; first initialize.
+    from . import pluglib              #import here, import at start of file gives error; first initialize.
     usersys = botsglobal.ini.get('directories','usersysabs')
     index_filename = os.path.join(usersys,'index.py')
     dummy_for_cleaned_data = {'databaseconfiguration':True,'umlists':botsglobal.ini.getboolean('settings','codelists_in_plugin',True),'databasetransactions':False}

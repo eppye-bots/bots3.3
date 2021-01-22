@@ -49,23 +49,23 @@ class jsonforgrammar(inmessage.Inmessage):
             is_repeting_data_element, self.root.children = self._dojsonlist(jsonobject,self._getrootid())   #fill root with children
             for child in self.root.children:
                 if not child.record:    #sanity test: the children must have content
-                    raise botslib.InMessageError(u'[J51]: No usable content.')
+                    raise botslib.InMessageError('[J51]: No usable content.')
         elif isinstance(jsonobject,dict):
-            if len(jsonobject)==1 and isinstance(jsonobject.values()[0],dict):
+            if len(jsonobject)==1 and isinstance(list(jsonobject.values())[0],dict):
                 # best structure: {rootid:{id2:<dict, list>}}
-                self.root = self._dojsonobject(jsonobject.values()[0],jsonobject.keys()[0],object_in_list=False)
-            elif len(jsonobject)==1 and isinstance(jsonobject.values()[0],list) :
+                self.root = self._dojsonobject(list(jsonobject.values())[0],list(jsonobject.keys())[0],object_in_list=False)
+            elif len(jsonobject)==1 and isinstance(list(jsonobject.values())[0],list) :
                 #root dict has no name; use value from grammar for rootID; {id2:<dict, list>}
                 self.root = node.Node(record={'BOTSID': self._getrootid()})  #initialise empty node.
-                is_repeting_data_element, self.root.children = self._dojsonlist(jsonobject.values()[0],jsonobject.keys()[0])
+                is_repeting_data_element, self.root.children = self._dojsonlist(list(jsonobject.values())[0],list(jsonobject.keys())[0])
             else:
                 #~ print self._getrootid()
                 self.root = self._dojsonobject(jsonobject,self._getrootid(),object_in_list=False)
             if not self.root:
-                raise botslib.InMessageError(u'[J52]: No usable content.')
+                raise botslib.InMessageError('[J52]: No usable content.')
         else:
             #root in JSON is neither dict or list.
-            raise botslib.InMessageError(u'[J53]: JSON root must be a "list" or "object".')
+            raise botslib.InMessageError('[J53]: JSON root must be a "list" or "object".')
 
     def _dojsonlist(self,jsonobject,name):
         #TODO: check for consistency!
@@ -76,20 +76,20 @@ class jsonforgrammar(inmessage.Inmessage):
                 newnode = self._dojsonobject(i,name,object_in_list=True)
                 if newnode:
                     lijst.append(newnode)
-            elif isinstance(i,(basestring,int,long,float)):
+            elif isinstance(i,(str,int,float)):
                 is_repeting_data_element = True
                 lijst.append(i)
             elif self.ta_info['checkunknownentities']:
-                raise botslib.InMessageError(u'[J54]: List content must be a "object".')
+                raise botslib.InMessageError('[J54]: List content must be a "object".')
         return is_repeting_data_element,lijst
 
     def _dojsonobject(self,jsonobject,name,object_in_list):
         thisnode = node.Node(record={'BOTSID':name},linpos_info=object_in_list)  #initialise empty node. linpos_info indicates if in lsit or not
         #~ print(thisnode.linpos_info, thisnode.record['BOTSID']) #,node_instance.linpos_info.record
-        for key,value in jsonobject.iteritems():
+        for key,value in jsonobject.items():
             if value is None:
                 continue
-            elif isinstance(value,basestring):  #json field; map to field in node.record
+            elif isinstance(value,str):  #json field; map to field in node.record
                 ## for generating grammars: empty strings should generate a field
                 if value and not value.isspace():   #use only if string has a value.
                     thisnode.record[key] = value
@@ -103,13 +103,13 @@ class jsonforgrammar(inmessage.Inmessage):
                     thisnode.record[key] = lijst
                 else:
                     thisnode.children.extend(lijst)
-            elif isinstance(value,(int,long,float)):  #json field; map to field in node.record
-                thisnode.record[key] = unicode(value)
+            elif isinstance(value,(int,float)):  #json field; map to field in node.record
+                thisnode.record[key] = str(value)
             else:
                 if self.ta_info['checkunknownentities']:
-                    raise botslib.InMessageError(u'[J55]: Key "%(key)s" value "%(value)s": is not string, list or dict.',
+                    raise botslib.InMessageError('[J55]: Key "%(key)s" value "%(value)s": is not string, list or dict.',
                                                     {'key':key,'value':value})
-                thisnode.record[key] = unicode(value)
+                thisnode.record[key] = str(value)
         if len(thisnode.record)==2 and not thisnode.children:
             return None #node is empty...
         #~ thisnode.record['BOTSID']=name
@@ -152,12 +152,12 @@ class xmlforgrammar(inmessage.Inmessage):
                 if self._use_botscontent(xmlchildnode):
                     newnode.record[xmlchildnode.tag] = '1'      #add as a field
                 #convert the xml-attributes of this 'xml-field' to fields in dict with attributemarker.
-                newnode.record.update((xmlchildnode.tag + self.ta_info['attributemarker'] + key, value) for key,value in xmlchildnode.items())
+                newnode.record.update((xmlchildnode.tag + self.ta_info['attributemarker'] + key, value) for key,value in list(xmlchildnode.items()))
         return newnode
 
     def _etreenode2botstreenode(self,xmlnode):
         ''' build a OrderedDict from xml-node. Add BOTSID, xml-attributes (of 'record'), xmlnode.text as BOTSCONTENT.'''
-        build = OrderedDict((xmlnode.tag + self.ta_info['attributemarker'] + key,value) for key,value in xmlnode.items())   #convert xml attributes to fields.
+        build = OrderedDict((xmlnode.tag + self.ta_info['attributemarker'] + key,value) for key,value in list(xmlnode.items()))   #convert xml attributes to fields.
         build['BOTSID'] = xmlnode.tag
         if self._use_botscontent(xmlnode):
             build['BOTSCONTENT'] = '1'
@@ -185,7 +185,7 @@ class xmlforgrammar_allrecords(inmessage.Inmessage):
 
     def _etreenode2botstreenode(self,xmlnode):
         ''' build a OrderedDict from xml-node. Add BOTSID, xml-attributes (of 'record'), xmlnode.text as BOTSCONTENT.'''
-        build = OrderedDict((xmlnode.tag + self.ta_info['attributemarker'] + key,value) for key,value in xmlnode.items())   #convert xml attributes to fields.
+        build = OrderedDict((xmlnode.tag + self.ta_info['attributemarker'] + key,value) for key,value in list(xmlnode.items()))   #convert xml attributes to fields.
         build['BOTSID'] = xmlnode.tag
         if not self._is_record(xmlnode):
             build['BOTSCONTENT'] = '1'
@@ -228,7 +228,7 @@ def tree2grammar(node_instance,structure,recorddefs):
     #add fields to recorddefs; might be already exsting recorddef for node
     if nodeID not in recorddefs:
         recorddefs[nodeID] = [] 
-    for key,value in node_instance.record.items():
+    for key,value in list(node_instance.record.items()):
         new_field = [key, 'C', 256, 'AN','R' if isinstance(value,list) else 'S'] #R: repeating field, S: single, non-repeat
         if new_field not in recorddefs[nodeID]:
             recorddefs[nodeID].append(new_field)

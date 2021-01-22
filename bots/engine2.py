@@ -100,7 +100,7 @@ def start():
         botslib.tryrunscript(userscript,scriptname,'pre')
         errorinrun = engine2_run()
     except Exception as msg:
-        botsglobal.logger.exception('Severe error in bots system:\n%(msg)s',{'msg':unicode(msg)})    #of course this 'should' not happen.
+        botsglobal.logger.exception('Severe error in bots system:\n%(msg)s',{'msg':str(msg)})    #of course this 'should' not happen.
         sys.exit(1)
     else:
         if errorinrun:
@@ -118,11 +118,11 @@ try:
 except ImportError:
     from xml.etree import ElementTree as ET
 #bots-modules
-import inmessage
-import outmessage
-import transform
-import envelope
-from botsconfig import *
+from . import inmessage
+from . import outmessage
+from . import transform
+from . import envelope
+from .botsconfig import *
 
 data_storage = 'botssys/data2'
 
@@ -343,8 +343,8 @@ def mergemessages(run):
             ta_info['nrmessages'] = nrmessages
             merge_no.append((ta_info, [filename],[infilename]))
     #envelope
-    for env_criteria,rest_of_info in merge_yes.items():
-        ta_info = dict(zip(names_envelope_criteria,env_criteria))
+    for env_criteria,rest_of_info in list(merge_yes.items()):
+        ta_info = dict(list(zip(names_envelope_criteria,env_criteria)))
         ta_info['filename'] = transform.unique('bots_file_name')   #create filename for enveloped message
         ta_info['nrmessages'] = rest_of_info[2]
         ta_info['infilename'] = rest_of_info[1]      #for reference: list of infilenames
@@ -390,8 +390,8 @@ def filename_formatter(filename_mask,ta_info):
         ''' class for the infile-string that handles the specific format-options'''
         def __format__(self, format_spec):
             if not format_spec:
-                return unicode(self)
-            name,ext = os.path.splitext(unicode(self))
+                return str(self)
+            name,ext = os.path.splitext(str(self))
             if format_spec == 'ext':
                 if ext.startswith('.'):
                     ext = ext[1:]
@@ -400,7 +400,7 @@ def filename_formatter(filename_mask,ta_info):
                 return name
             raise botslib.CommunicationOutError('Error in format of "{filename}": unknown format: "%(format)s".',
                                                 {'format':format_spec})
-    unique = unicode(botslib.unique('bots_outgoing_file_name'))   #create unique part for filename
+    unique = str(botslib.unique('bots_outgoing_file_name'))   #create unique part for filename
     tofilename = filename_mask.replace('*',unique)           #filename_mask is filename in channel where '*' is replaced by idta
     if '{' in tofilename :
         if botsglobal.ini.getboolean('acceptance','runacceptancetest',False):
@@ -444,26 +444,26 @@ def dict2xml(d):
         node = ET.Element(tag)
         if not content:
             pass    #empty element
-        elif isinstance(content, basestring):
+        elif isinstance(content, str):
             node.text = content
         elif isinstance(content, list):
             node.tag = tag + 's'    #change node tag
             for element in content:
                 node.append(makenode(tag, element))
         elif isinstance(content, dict):
-            for key,value in content.items():
+            for key,value in list(content.items()):
                 node.append(makenode(key, value))
         else:
             node.text = repr(content)
         return node
     assert isinstance(d, dict) and len(d) == 1
-    for key,value in d.items():
+    for key,value in list(d.items()):
         node = makenode(key,value)
     botslib.indent_xml(node)
     return ET.tostring(node)
 
 def filterlijst(lijst,names):
-    return [dict((k,v) for k,v in d.items() if k in names) for d in lijst]
+    return [dict((k,v) for k,v in list(d.items()) if k in names) for d in lijst]
 
 def report(run):
     in_filter = ('infilename','error','editype','messagetype')

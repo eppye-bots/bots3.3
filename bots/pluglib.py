@@ -135,8 +135,8 @@ def read_index2database(orgpluglist):
     for plug in orgpluglist:
         if not isinstance(plug,dict):
             raise botslib.PluginError('Plugins should be list of dicts. Nothing is written.')
-        for key in plug.keys():
-            if not isinstance(key,basestring):
+        for key in list(plug.keys()):
+            if not isinstance(key,str):
                 raise botslib.PluginError('Key of dict is not a string: "%(plug)s". Nothing is written.',{'plug':plug})
         if 'plugintype' not in plug:
             raise botslib.PluginError('"Plugintype" missing in: "%(plug)s". Nothing is written.',{'plug':plug})
@@ -268,7 +268,7 @@ def read_index2database(orgpluglist):
             dbobject = table(**sleutel)         #create db-object
             if plugintype == 'partner':        #for partners, first the partner needs to be saved before groups can be made
                 dbobject.save()
-        for key,value in plug.items():      #update object with attributes from plugin
+        for key,value in list(plug.items()):      #update object with attributes from plugin
             setattr(dbobject,key,value)
         dbobject.save()                     #and save the updated object.
         botsglobal.logger.info('        Write to database is OK.')
@@ -374,8 +374,8 @@ def plugout_files(cleaned_data):
     ''' gather list of files for the plugin that is generated.
     '''
     files2return = []
-    usersys = unicode(botsglobal.ini.get('directories','usersysabs'))
-    botssys = unicode(botsglobal.ini.get('directories','botssys'))
+    usersys = str(botsglobal.ini.get('directories','usersysabs'))
+    botssys = str(botsglobal.ini.get('directories','botssys'))
     if cleaned_data['fileconfiguration']:       #gather from usersys
         files2return.extend(plugout_files_bydir(usersys,'usersys'))
         if not cleaned_data['charset']:     #if edifact charsets are not needed: remove them (are included in default bots installation).

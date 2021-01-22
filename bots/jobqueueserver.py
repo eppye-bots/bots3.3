@@ -2,14 +2,14 @@
 from __future__ import print_function
 import sys
 import os
-import xmlrpclib
-from SimpleXMLRPCServer import SimpleXMLRPCServer
+import xmlrpc.client
+from xmlrpc.server import SimpleXMLRPCServer
 import time
 import subprocess
 import threading
-import botsinit
-import botslib
-import botsglobal
+from . import botsinit
+from . import botslib
+from . import botsglobal
 
 
 #-------------------------------------------------------------------------------
@@ -69,7 +69,7 @@ def action_when_time_out(logger,maxruntime,jobnumber,task_to_run):
 #-------------------------------------------------------------------------------
 def launcher(logger,port,lauchfrequency,maxruntime):
     DEVNULL = open(os.devnull, 'wb')
-    xmlrpcclient = xmlrpclib.ServerProxy('http://localhost:' + unicode(port))
+    xmlrpcclient = xmlrpc.client.ServerProxy('http://localhost:' + str(port))
     maxseconds = maxruntime*60
     time.sleep(3)   #allow jobqserver to start
     nr_runs_NOK = 0
@@ -99,7 +99,7 @@ def launcher(logger,port,lauchfrequency,maxruntime):
             if nr_runs_NOK >= 10:
                 logger.error('More than 10 consecutive errors in the bots-jobqueueserver, shutting down now')
                 botslib.sendbotserrorreport('[Bots Job Queue] bots-jobqueueserver has stopped',
-                                            'More than 10 consecutive errors occured in the bots-jobqueueserver, so jobqueue-server is stopped now.'})
+                                            'More than 10 consecutive errors occured in the bots-jobqueueserver, so jobqueue-server is stopped now.')
                 sys.exit(1)
 
 
