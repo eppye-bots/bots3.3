@@ -32,12 +32,13 @@ div#container {
 	position:	absolute;
 	top:		5.5em;
 	}
+/* div.help breaks positioning of helptext in Django 1.11 
 div.help {
 	position:	absolute;
 	top:		5em;
 	left:		5em;
 	color:#000000;
-	}
+	} */
 div#content {
 	margin: 0;
 	}
@@ -211,3 +212,9 @@ table thead th .text a {
     cursor: pointer;
     padding: 15px 5px 2px 5px;
 }
+
+/* use full width in Django 1.8+ */
+.change-list .filtered .results, .change-list .filtered .paginator,
+.filtered #toolbar, .filtered div.xfull {
+    margin-right: 0px;
+    width: auto;
