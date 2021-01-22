@@ -111,7 +111,14 @@ class _comsession(object):
             if self.command == 'new': #only in-communicate for new run
                 #~ print('in communication run 1')
                 #handle maxsecondsperchannel: use global value from bots.ini unless specified in channel. (In database this is field 'rsrv2'.)
-                self.maxsecondsperchannel = self.channeldict['rsrv2'] if self.channeldict['rsrv2'] is not None and self.channeldict['rsrv2'] > 0 else botsglobal.ini.getint('settings','maxsecondsperchannel',sys.maxsize)
+                # MJG Python 3 deprecation warning fix
+                self.maxsecondsperchannel = botsglobal.ini.getint('settings','maxsecondsperchannel',sys.maxint)
+                try:
+                    secs = int(self.channeldict['rsrv2'])
+                    if secs > 0:
+                        self.maxsecondsperchannel = secs
+                except:
+                    pass
                 #bots tries to connect several times. this is probably a better stategy than having long time-outs.
                 max_nr_connect_tries = botsglobal.ini.getint('settings','maxconnectiontries',3)        #how often does bots try to connect. TODO later version: setting per channel
                 nr_connect_tries = 0
@@ -131,11 +138,12 @@ class _comsession(object):
                         #max_nr_retry : from channel. should be integer, but only textfields where left. so might be ''/None->use 0
                         max_nr_retry = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
                         if max_nr_retry:
-                            domain = 'bots_communication_failure_' + self.channeldict['idchannel']
+                            domain = (self.channeldict['idchannel'] + '_failure')[:35]
                             nr_retry = botslib.unique(domain)  #update nr_retry in database
                             if nr_retry >= max_nr_retry:
                                 botslib.unique(domain,updatewith=0)    #reset nr_retry to zero
                             else:
+                                botsglobal.logger.info('Communication failure %s on channel %s',nr_retry,self.channeldict['idchannel'])
                                 return  #max_nr_retry is not reached. return without error
                         raise
                     finally:
@@ -145,7 +153,7 @@ class _comsession(object):
                         # ~ #max_nr_retry : get this from channel. should be integer, but only textfields where left. so might be ''/None->use 0
                         # ~ max_nr_retry = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
                         # ~ if max_nr_retry:
-                            # ~ domain = 'bots_communication_failure_' + self.channeldict['idchannel']
+                            # ~ domain = (self.channeldict['idchannel'] + '_failure')[:35]
                             # ~ botslib.unique(domain,updatewith=0)    #set nr_retry to zero
                 self.incommunicate()
                 self.disconnect()
@@ -267,8 +275,8 @@ class _comsession(object):
                 confirmtype = ''
                 confirmasked = False
                 charset = row['charset']
-
-                if row['editype'] == 'email-confirmation': #outgoing MDN: message is already assembled
+                # MJG 15/01/2019 BUGFIX for automaticretrycommunication
+                if row['editype'] == 'email-confirmation' or self.command == 'automaticretrycommunication': # message is already assembled
                     outfilename = row['filename']
                 else:   #assemble message: headers and payload. Bots uses simple MIME-envelope; by default payload is an attachment
                     message = email.message.Message()
@@ -413,7 +421,7 @@ class _comsession(object):
                 outfile.close()
                 nrmimesaved += 1
                 ta_file.update(statust=OK,
-                                contenttype=contenttype,
+                                contenttype=contenttype[:35], # MJG 24/08/2016 truncate to fit in db
                                 filename=outfilename,
                                 filesize=filesize,
                                 divtext=attachment_filename)

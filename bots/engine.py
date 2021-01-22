@@ -85,10 +85,11 @@ def start():
         botsglobal.logger = botsinit.initenginelogging(process_name)
         atexit.register(logging.shutdown)
     except Exception as msg:
+        print('Error initialising logging:' + msg)
         botslib.sendbotserrorreport('[Bots severe error] Bots is not running anymore','Bots does not run because logging is not possible.\nOften a rights problem.\n')
         sys.exit(1)
     else:
-        if botsglobal.ini.get('settings','log_file_number','') != 'daily':
+        if botsglobal.ini.get('settings','log_when',None) != 'daily':
             for key,value in botslib.botsinfo():    #log info about environement, versions, etc
                 botsglobal.logger.info('%(key)s: "%(value)s".',{'key':key,'value':value})
 
@@ -96,6 +97,7 @@ def start():
     try:
         botsinit.connect()
     except Exception as msg:
+        print('Error connecting to database:' + msg)
         botsglobal.logger.exception('Could not connect to database. Database settings are in bots/config/settings.py. Error: "%(msg)s".',{'msg':msg})
         sys.exit(1)
     else:
@@ -196,6 +198,7 @@ def start():
 
         cleanup.cleanup(do_cleanup_parameter,userscript,scriptname)
     except Exception as msg:
+        print('Severe error:' + msg)
         botsglobal.logger.exception('Severe error in bots system:\n%(msg)s',{'msg':unicode(msg)})    #of course this 'should' not happen.
         sys.exit(1)
     else:
