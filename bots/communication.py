@@ -143,7 +143,7 @@ class _comsession(object):
                             if nr_retry >= max_nr_retry:
                                 botslib.unique(domain,updatewith=0)    #reset nr_retry to zero
                             else:
-                            botsglobal.logger.info(u'Communication failure %s on channel %s',nr_retry,self.channeldict['idchannel'])
+                                botsglobal.logger.info('Communication failure %s on channel %s',nr_retry,self.channeldict['idchannel'])
                                 return  #max_nr_retry is not reached. return without error
                         raise
                     finally:
