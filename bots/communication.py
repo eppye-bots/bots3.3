@@ -1363,7 +1363,7 @@ class ftpis(ftp):
 class sftp(_comsession):
     ''' SFTP: SSH File Transfer Protocol (SFTP is not FTP run over SSH, SFTP is not Simple File Transfer Protocol)
         standard port to connect to is port 22.
-        requires paramiko and pycrypto to be installed
+        requires paramiko to be installed
         based on class ftp and ftps above with code from demo_sftp.py which is included with paramiko
         Mike Griffin 16/10/2010
         Henk-jan ebbers 20110802: when testing I found that the transport also needs to be closed. So changed transport ->self.transport, and close this in disconnect
@@ -1373,6 +1373,8 @@ class sftp(_comsession):
     def connect(self):
         try:
             import paramiko
+            if paramiko.__version__ < '2.0':
+                raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher.')
         except ImportError:
             raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher.')
         # setup logging if required
