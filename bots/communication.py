@@ -146,15 +146,15 @@ class _comsession(object):
                                 botsglobal.logger.info('Communication failure %s on channel %s',nr_retry,self.channeldict['idchannel'])
                                 return  #max_nr_retry is not reached. return without error
                         raise
+                    else:
+                        #in-connection OK. Reset database entry.
+                        #max_nr_retry : get this from channel. should be integer, but only textfields where left. so might be ''/None->use 0
+                        max_nr_retry = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
+                        if max_nr_retry:
+                            domain = (self.channeldict['idchannel'] + '_failure')[:35]
+                            botslib.unique(domain,updatewith=0)    #set nr_retry to zero
                     finally:
                         break
-                    # ~ else:
-                        # ~ #in-connection OK. Reset database entry.
-                        # ~ #max_nr_retry : get this from channel. should be integer, but only textfields where left. so might be ''/None->use 0
-                        # ~ max_nr_retry = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
-                        # ~ if max_nr_retry:
-                            # ~ domain = (self.channeldict['idchannel'] + '_failure')[:35]
-                            # ~ botslib.unique(domain,updatewith=0)    #set nr_retry to zero
                 self.incommunicate()
                 self.disconnect()
             self.postcommunicate()
