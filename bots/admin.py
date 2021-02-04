@@ -23,6 +23,7 @@ class BotsAdmin(admin.ModelAdmin):
         for obj in queryset:
             obj.active = not obj.active
             obj.save()
+            admin.ModelAdmin.log_change(None, request, obj, 'Changed active: %s' %obj.active)
     activate.short_description = 'activate/de-activate'
 
 #*****************************************************************************************************
