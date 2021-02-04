@@ -1373,8 +1373,8 @@ class sftp(_comsession):
     def connect(self):
         try:
             import paramiko
-        except:
-            raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko".')
+        except ImportError:
+            raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher.')
         # setup logging if required
         ftpdebug = botsglobal.ini.getint('settings','ftpdebug',0)
         if ftpdebug > 0:
@@ -1389,6 +1389,9 @@ class sftp(_comsession):
         except:
             port = 22 # default port for sftp
 
+        #if password is empty string: use None. Else error can occur.
+        secret = self.channeldict['secret'] or None
+
         if self.userscript and hasattr(self.userscript,'hostkey'):
             hostkey = botslib.runscript(self.userscript,self.scriptname,'hostkey',channeldict=self.channeldict)
         else:
@@ -1399,13 +1402,13 @@ class sftp(_comsession):
                 pkey = paramiko.RSAKey.from_private_key_file(filename=privatekeyfile,password=pkeypassword)
             else:
                 pkey = paramiko.DSSKey.from_private_key_file(filename=privatekeyfile,password=pkeypassword)
+        # RSA private key (keyfile) and optional passphrase (secret) in channel without user script
+        elif self.channeldict['keyfile']:
+            pkey = paramiko.RSAKey.from_private_key_file(filename=self.channeldict['keyfile'],password=secret)
+            secret = None 
         else:
             pkey = None
 
-        if self.channeldict['secret']:  #if password is empty string: use None. Else error can occur.
-            secret = self.channeldict['secret']
-        else:
-            secret = None
         # now, connect and use paramiko Transport to negotiate SSH2 across the connection
         self.transport = paramiko.Transport((hostname,port))
         self.transport.connect(username=self.channeldict['username'],password=secret,hostkey=hostkey,pkey=pkey)
