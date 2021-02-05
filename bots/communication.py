@@ -1374,7 +1374,7 @@ class sftp(_comsession):
         try:
             import paramiko
             if paramiko.__version__ < '2.0':
-                raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher.')
+                raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher (version %s installed)' %paramiko.__version__)
         except ImportError:
             raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher.')
         # setup logging if required
