@@ -101,60 +101,71 @@ class _comsession(object):
         self.rootidta = rootidta
 
     def run(self):
+        # Max connection tries; bots tries to connect several times per run. this is probably a better strategy than having long time-outs.
+        # This is useful for both incoming and outgoing channels. TODO later version: setting per channel  [MJG not sure this is needed per channel]
+        maxconnectiontries = botsglobal.ini.getint('settings','maxconnectiontries',3)
+        nr_connectiontries = 0
+
         if self.channeldict['inorout'] == 'out':
             self.precommunicate()
-            self.connect()
+
+            while True:
+                nr_connectiontries += 1
+                try:
+                    #print('connect',nr_connectiontries)
+                    self.connect()
+                except Exception as exc:
+                    #print(exc)
+                    if nr_connectiontries >= maxconnectiontries:
+                        raise(exc) from exc # just re-raise the original exception, no context chain
+                else:
+                    break # out-connection OK
+
             self.outcommunicate()
             self.disconnect()
             self.archive()
+
         else:   #do incommunication
             if self.command == 'new': #only in-communicate for new run
-                #~ print('in communication run 1')
                 #handle maxsecondsperchannel: use global value from bots.ini unless specified in channel. (In database this is field 'rsrv2'.)
-                # MJG Python 3 deprecation warning fix
-                self.maxsecondsperchannel = botsglobal.ini.getint('settings','maxsecondsperchannel',sys.maxint)
+                # TODO: MJG in hindsight, a "maxfiles" value would be more useful. Sometimes in-channel is very fast and out-channel
+                # is very slow. If bots receives 1000 files in 30 seconds then they have to be sent even if it takes 3 hours. 
+                # I have needed to carefully "fine-tune" maxseconds on fast in-channels.
+                self.maxsecondsperchannel = botsglobal.ini.getint('settings','maxsecondsperchannel',sys.maxsize)
                 try:
                     secs = int(self.channeldict['rsrv2'])
                     if secs > 0:
                         self.maxsecondsperchannel = secs
                 except:
                     pass
-                #bots tries to connect several times. this is probably a better stategy than having long time-outs.
-                max_nr_connect_tries = botsglobal.ini.getint('settings','maxconnectiontries',3)        #how often does bots try to connect. TODO later version: setting per channel
-                nr_connect_tries = 0
+                # Max failures; bots keeps count of consecutive failures across runs for an in-channel before reporting a process error
+                # from channel. should be integer, but only textfields were left. so might be None->use 0.
+                maxfailures = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
+                domain = (self.channeldict['idchannel'] + '_failure')[:35]
                 while True:
-                    nr_connect_tries += 1
+                    nr_connectiontries += 1
                     try:
-                        #~ print('in communication run 2')
+                        #~print('connect try',nr_connectiontries)
                         self.connect()
-                        #~ print('in communication run 3')
-                    except:
-                        #check if max nr tries is reached
-                        if nr_connect_tries < max_nr_connect_tries:
-                            continue
-                        #in-connection failed (no files are received yet via this channel)
-                        #store in database how many failed connection tries for this channel.
-                        #useful if bots is scheduled quite often, and limiting number of error-reports eg when server is down.
-                        #max_nr_retry : from channel. should be integer, but only textfields where left. so might be ''/None->use 0
-                        max_nr_retry = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
-                        if max_nr_retry:
-                            domain = (self.channeldict['idchannel'] + '_failure')[:35]
-                            nr_retry = botslib.unique(domain)  #update nr_retry in database
-                            if nr_retry >= max_nr_retry:
-                                botslib.unique(domain,updatewith=0)    #reset nr_retry to zero
-                            else:
-                                botsglobal.logger.info('Communication failure %s on channel %s',nr_retry,self.channeldict['idchannel'])
-                                return  #max_nr_retry is not reached. return without error
-                        raise
+                    except Exception as exc:
+                        #~ print(exc)
+                        if nr_connectiontries >= maxconnectiontries:
+                            #in-connection failed (no files are received yet via this channel)
+                            #store in database how many consecutive failures for this channel.
+                            #only raise exception every multiple of maxfailures (use modulo, keep actual count)
+                            #useful if bots is scheduled quite often, and limiting number of error-reports eg when server is down.
+                            if maxfailures:
+                                nr_failures = botslib.unique(domain) # increment nr_failures counter in database
+                                if nr_failures % maxfailures != 0: 
+                                    botsglobal.logger.info('Communication failure %s on channel %s: %s',nr_failures,self.channeldict['idchannel'],msg)
+                                    return  #maxfailures is not reached. return without error
+                            raise exc from exc # just re-raise the original exception, no context chain
                     else:
-                        #in-connection OK. Reset database entry.
-                        #max_nr_retry : get this from channel. should be integer, but only textfields where left. so might be ''/None->use 0
-                        max_nr_retry = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
-                        if max_nr_retry:
-                            domain = (self.channeldict['idchannel'] + '_failure')[:35]
-                            botslib.unique(domain,updatewith=0)    #set nr_retry to zero
-                    finally:
+                        #in-connection OK. Reset failure counter to zero
+                        if maxfailures:
+                            botslib.unique(domain,updatewith=0)
                         break
+
                 self.incommunicate()
                 self.disconnect()
             self.postcommunicate()
