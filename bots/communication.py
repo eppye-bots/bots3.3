@@ -1382,7 +1382,7 @@ class ftpis(ftp):
 class sftp(_comsession):
     ''' SFTP: SSH File Transfer Protocol (SFTP is not FTP run over SSH, SFTP is not Simple File Transfer Protocol)
         standard port to connect to is port 22.
-        requires paramiko and pycrypto to be installed
+        requires paramiko to be installed
         based on class ftp and ftps above with code from demo_sftp.py which is included with paramiko
         Mike Griffin 16/10/2010
         Henk-jan ebbers 20110802: when testing I found that the transport also needs to be closed. So changed transport ->self.transport, and close this in disconnect
@@ -1392,8 +1392,10 @@ class sftp(_comsession):
     def connect(self):
         try:
             import paramiko
-        except:
-            raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko".')
+            if paramiko.__version__ < '2.0':
+                raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher (version %s installed)' %paramiko.__version__)
+        except ImportError:
+            raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher.')
         # setup logging if required
         ftpdebug = botsglobal.ini.getint('settings','ftpdebug',0)
         if ftpdebug > 0:
@@ -1408,6 +1410,9 @@ class sftp(_comsession):
         except:
             port = 22 # default port for sftp
 
+        #if password is empty string: use None. Else error can occur.
+        secret = self.channeldict['secret'] or None
+
         if self.userscript and hasattr(self.userscript,'hostkey'):
             hostkey = botslib.runscript(self.userscript,self.scriptname,'hostkey',channeldict=self.channeldict)
         else:
@@ -1418,13 +1423,13 @@ class sftp(_comsession):
                 pkey = paramiko.RSAKey.from_private_key_file(filename=privatekeyfile,password=pkeypassword)
             else:
                 pkey = paramiko.DSSKey.from_private_key_file(filename=privatekeyfile,password=pkeypassword)
+        # RSA private key (keyfile) and optional passphrase (secret) in channel without user script
+        elif self.channeldict['keyfile']:
+            pkey = paramiko.RSAKey.from_private_key_file(filename=self.channeldict['keyfile'],password=secret)
+            secret = None 
         else:
             pkey = None
 
-        if self.channeldict['secret']:  #if password is empty string: use None. Else error can occur.
-            secret = self.channeldict['secret']
-        else:
-            secret = None
         # now, connect and use paramiko Transport to negotiate SSH2 across the connection
         self.transport = paramiko.Transport((hostname,port))
         self.transport.connect(username=self.channeldict['username'],password=secret,hostkey=hostkey,pkey=pkey)
