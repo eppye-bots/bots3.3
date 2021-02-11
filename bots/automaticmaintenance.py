@@ -82,22 +82,22 @@ def email_error_report(rootidtaofrun):
         raise botslib.PanicError('In generate report: could not find report?')
     subject = '[Bots Error Report] %(time)s'%{'time':str(results['ts'])[:16]}
     reporttext = 'Bots Report; type: %(type)s, time: %(time)s\n'%{'type':results['type'],'time':str(results['ts'])[:19]}
-    reporttext += '    %d files received/processed in run.\n'%(results['lastreceived'])
+    reporttext += pluralize('    %d file%s received/processed in run.\n',results['lastreceived'])
     if results['lastdone']:
-        reporttext += '    %d files without errors,\n'%(results['lastdone'])
+        reporttext += pluralize('    %d file%s without errors,\n',results['lastdone'])
     if results['lasterror']:
-        subject += '; %d file errors'%(results['lasterror'])
-        reporttext += '    %d files with errors,\n'%(results['lasterror'])
+        subject += pluralize('; %d file error%s',results['lasterror'])
+        reporttext += pluralize('    %d file%s with errors,\n',results['lasterror'])
     if results['lastok']:
-        subject += '; %d files stuck'%(results['lastok'])
-        reporttext += '    %d files got stuck,\n'%(results['lastok'])
+        subject += pluralize('; %d file%s stuck',results['lastok'])
+        reporttext += pluralize('    %d file%s got stuck,\n',results['lastok'])
     if results['lastopen']:
-        subject += '; %d system errors'%(results['lastopen'])
-        reporttext += '    %d system errors,\n'%(results['lastopen'])
+        subject += pluralize('; %d system error%s',results['lastopen'])
+        reporttext += pluralize('    %d system error%s,\n',results['lastopen'])
     if results['processerrors']:
-        subject += '; %d process errors'%(results['processerrors'])
-        reporttext += '    %d errors in processes.\n'%(results['processerrors'])
-    reporttext += '    %d files send in run.\n'%(results['send'])
+        subject += pluralize('; %d process error%s',results['processerrors'])
+        reporttext += pluralize('    %d process error%s,\n',results['processerrors'])
+    reporttext += pluralize('    %d file%s sent in run.\n',results['send'])
 
     botsglobal.logger.info(reporttext)      #log the report texts
     # only send email report if there are errors.
@@ -130,6 +130,13 @@ def email_error_report(rootidtaofrun):
 
     return int(results['status'])    #return report status: 0 (no error) or 1 (error)
 
+def pluralize(text,number):
+    # simple pluralize function using Django pluralize filter
+    # handles only the simple case of adding an s, no exceptions are needed here
+    # input text should contain %d for the number and %s for the plural
+    # eg. pluralize('%d files%s sent',counter)
+    from django.template.defaultfilters import pluralize
+    return text %(number,pluralize(number))
 
 class Trace(object):
     ''' trace for one incoming file.

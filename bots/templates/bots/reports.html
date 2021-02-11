@@ -56,16 +56,16 @@
                 <td class="nowrap">{% if row.filesize %}{{row.filesize|filesizeformat}}{% endif %}</td>
                 <td>
                     {% if row.lasterror %}
-                        {{row.lasterror}} files with errors; 
+                        {{row.lasterror}} file{{ row.lasterror|pluralize }} with errors; 
                     {% endif %}
                     {% if row.lastok %}
-                        {{row.lastok}} files got stuck; 
+                        {{row.lastok}} file{{row.lastok|pluralize}} got stuck; 
                     {% endif %}
                     {% if row.lastopen %}
-                        {{row.lastopen}} system errors; 
+                        {{row.lastopen}} system error{{row.lastopen|pluralize}}; 
                     {% endif %}
                     {% if row.processerrors %}
-                        {{row.processerrors}} errors in processes; 
+                        {{row.processerrors}} process error{{row.processerrors|pluralize}}; 
                     {% endif %}
                 </td>
                 <td>{{row.rsrv1}}</td>
