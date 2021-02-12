@@ -418,10 +418,10 @@ def botsimport(*args):
     except ImportError as msg:
         botsglobal.not_import.add(modulepath)
         botsglobal.logger.debug('No import of module "%(modulefile)s": %(txt)s.',{'modulefile':modulefile,'txt':msg})
-        raise BotsImportError('No import of module "%(modulefile)s": %(txt)s',{'modulefile':modulefile,'txt':msg})
+        raise BotsImportError('No import of module "%(modulefile)s": %(txt)s',{'modulefile':modulefile,'txt':msg}) from None
     except Exception as msg:
         botsglobal.logger.debug('Error in import of module "%(modulefile)s": %(txt)s.',{'modulefile':modulefile,'txt':msg})
-        raise ScriptImportError('Error in import of module "%(modulefile)s":\n%(txt)s',{'modulefile':modulefile,'txt':msg})
+        raise ScriptImportError('Error in import of module "%(modulefile)s":\n%(txt)s',{'modulefile':modulefile,'txt':msg}) from None
     else:
         botsglobal.logger.debug('Imported "%(modulefile)s".',{'modulefile':modulefile})
         return module,modulefile
