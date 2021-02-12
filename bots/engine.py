@@ -58,7 +58,7 @@ def start():
         elif arg.startswith('-g'):
             routegroup = arg[2:]
             if not routegroup:
-                print 'Error: route group indicated, but no group name.'
+                print('Error: route group indicated, but no group name.')
                 sys.exit(1)
         elif arg in commandspossible:
             commandstorun.append(arg)
