@@ -455,6 +455,77 @@ def logfiler(request,*kw,**kwargs):
             logfiles = sorted(os.listdir(logpath), key=lambda s: s.lower())
             return django.shortcuts.render(request,'bots/logfiler.html',{'log':log, 'logdata':logdata, 'logfiles':logfiles})
 
+def ccodecsv(request,*kw,**kwargs):
+    ''' handles download/upload of csv files from/to ccode tables.'''
+    import csv
+    if request.method == 'GET':
+        ccodeid = request.GET['ccodeid']
+        if request.GET['action'] == 'download':
+            response = django.http.HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename=%s.csv'%ccodeid
+            csvout = csv.writer(response,dialect='excel')
+            csvout.writerow(['ccodeid','leftcode','rightcode','attr1','attr2','attr3','attr4','attr5','attr6','attr7','attr8']) # headings
+            for row in models.ccode.objects.filter(ccodeid=ccodeid):
+                csvout.writerow([row.ccodeid,row.leftcode,row.rightcode,row.attr1,row.attr2,row.attr3,row.attr4,row.attr5,row.attr6,row.attr7,row.attr8])
+            return response
+        elif request.GET['action'] == 'upload':
+            form = forms.UploadFileForm()
+            return django.shortcuts.render(request,'bots/ccodecsv.html',{'ccodeid':ccodeid,'form':form})
+    elif 'submit' in request.POST:
+        form = forms.UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            #read the file and load into ccode table
+            try:
+                results={'ignored':0,'inserted':0,'updated':0,'unchanged':0}
+                with open(request.FILES['file'].temporary_file_path(), 'r',encoding='utf-8') as csvfile:
+                    csvin = csv.reader(csvfile,dialect='excel')
+                    for row in csvin:
+                        if row[0] == request.POST['ccodeid']:
+                            # every column must exist (ccode has empty strings, not nulls)
+                            for i in range(1,11):
+                                try:
+                                    row[i] = max(row[i],'')
+                                except IndexError:
+                                    row.append('')
+                            try:
+                                record = models.ccode.objects.get(ccodeid=row[0],leftcode=row[1])
+                                # Check for "unchanged" records
+                                # This is not strictly necessary, could just update all
+                                # but it provides useful feedback to the user
+                                if (record.rightcode == row[2] and record.attr1 == row[3] and record.attr2 == row[4]
+                                    and record.attr3 == row[5] and record.attr4 == row[6] and record.attr5 == row[7]
+                                    and record.attr6 == row[8] and record.attr7 == row[9] and record.attr8 == row[10]):
+                                    results['unchanged'] += 1
+                                else:
+                                    record.rightcode = row[2]
+                                    record.attr1 = row[3]
+                                    record.attr2 = row[4]
+                                    record.attr3 = row[5]
+                                    record.attr4 = row[6]
+                                    record.attr5 = row[7]
+                                    record.attr6 = row[8]
+                                    record.attr7 = row[9]
+                                    record.attr8 = row[10]
+                                    record.save()
+                                    results['updated'] += 1
+                            except django.core.exceptions.ObjectDoesNotExist:
+                                record = models.ccode(ccodeid=models.ccodetrigger.objects.get(ccodeid=row[0]),leftcode = row[1],
+                                    rightcode = row[2], attr1 = row[3], attr2 = row[4], attr3 = row[5], attr4 = row[6],
+                                    attr5 = row[7], attr6 = row[8], attr7 = row[9], attr8 = row[10])
+                                record.save()
+                                results['inserted'] += 1
+                        else:
+                            results['ignored'] += 1 # ccodeid not equal
+            except Exception as msg:
+                notification = u'Error uploading file: "%s".'%str(msg)
+                botsglobal.logger.error(notification)
+                messages.add_message(request, messages.INFO, notification)
+            else:
+                # show a results view with row counts
+                return django.shortcuts.render(request,'bots/ccodecsv.html', {'ccodeid':request.POST['ccodeid'],'results':results})
+        else:
+            messages.add_message(request, messages.INFO, _(u'No file read.'))
+    return django.shortcuts.redirect('admin/bots/ccodetrigger/')
 
 def plugin(request,*kw,**kwargs):
     if request.method == 'GET':

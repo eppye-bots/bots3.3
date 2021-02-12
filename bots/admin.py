@@ -53,7 +53,7 @@ class CcodeAdmin(BotsAdmin):
 admin.site.register(models.ccode,CcodeAdmin)
 
 class CcodetriggerAdmin(BotsAdmin):
-    list_display = ('ccodeid','ccodeid_desc',)
+    list_display = ('ccodeid','download','upload','rowcount','ccodeid_desc',)
     list_display_links = ('ccodeid',)
     ordering = ('ccodeid',)
     search_fields = ('ccodeid','ccodeid_desc')

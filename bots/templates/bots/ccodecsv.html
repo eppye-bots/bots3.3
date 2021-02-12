@@ -1,0 +1,35 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block content %}
+<br/>
+<h1>Upload CSV file to User Code list {{ ccodeid }}</h1>
+<form action="/ccodecsv" method="POST" enctype="multipart/form-data">{% csrf_token %}
+    {% if results %} 
+        <ul>
+            {% for action, count in results.items %}
+                <li>{{count}} row{{ count|pluralize }} {{action}}</li>
+            {% endfor %}
+        </ul>
+        <br/>&nbsp;
+        <input type="submit" name="ok" value="{% trans 'OK' %}" />
+
+    {% else %}
+        <p>&nbsp;Select a CSV file from your file system.</p>
+        <ul>
+            <li>First column (ccodeid) must be "{{ ccodeid }}" or it will be ignored.</li>
+            <li>Second column (leftcode) is assumed to be a unique key.</li>
+            <li>Rows are inserted or updated as necessary; unchanged rows are skipped.</li>
+            <li>Deletions must be done manually from User Codes list view.</li>
+        </ul>
+        <br/>
+        <table>
+            {{ form }}
+        </table>
+        <br/>&nbsp;
+        <input class="button" type="submit" name="cancel" value="{% trans 'Cancel' %}" />
+        <input class="button" type="submit" name="submit" value="{% trans 'Read' %}" />
+        <input type="hidden" name="ccodeid" value="{{ ccodeid }}" />
+    {% endif %}
+</form>
+{% endblock %}

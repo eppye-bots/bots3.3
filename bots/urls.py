@@ -38,6 +38,7 @@ urlpatterns = [
     url(r'^plugout/index.*', superuser_required(views.plugout_index)),
     url(r'^plugout/backup.*', superuser_required(views.plugout_backup)),
     url(r'^plugout.*', superuser_required(views.plugout)),
+    url(r'^ccodecsv.*', superuser_required(views.ccodecsv)),
     url(r'^sendtestmail.*', superuser_required(views.sendtestmailmanagers)),
     #catch-all
     url(r'^.*', views.index),

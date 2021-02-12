@@ -218,6 +218,21 @@ class ccodetrigger(models.Model):
     ccodeid_desc = models.TextField(blank=True,null=True,verbose_name='Description')
     def __str__(self):
         return str(self.ccodeid)
+
+    def download(self):
+        return '<center><input type="button" value="&#x25BC;" class="default" onclick="document.location.href=\'/ccodecsv/?action=download&ccodeid=%s\'; return false;"></center>'%self.ccodeid
+    download.allow_tags = True
+    download.short_description = 'Download'
+
+    def upload(self):
+        return '<center><input type="button" value="&#x25B2;" class="default" onclick="document.location.href=\'/ccodecsv/?action=upload&ccodeid=%s\'; return false;"></center>'%self.ccodeid
+    upload.allow_tags = True
+    upload.short_description = 'Upload'
+
+    def rowcount(self):
+        return ccode.objects.filter(ccodeid=self.ccodeid).count()
+    rowcount.short_description = 'Row count'
+
     class Meta:
         db_table = 'ccodetrigger'
         verbose_name = 'user code type'

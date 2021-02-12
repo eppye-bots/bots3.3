@@ -181,7 +181,7 @@ class ViewConfirm(View):
     tochannel = django.forms.CharField(required=False,widget=HIDDENINPUT())
 
 class UploadFileForm(django.forms.Form):
-    file  = django.forms.FileField(label='Plugin to read',required=True,widget=django.forms.widgets.FileInput(attrs={'size':'100'}))
+    file  = django.forms.FileField(label='',required=True,widget=django.forms.widgets.FileInput(attrs={'size':'100'}))
 
 class PlugoutForm(django.forms.Form):
     databaseconfiguration = django.forms.BooleanField(required=False,initial=True,label='Database configuration',help_text='Routes, channels, translations, partners, etc. from the database.')
