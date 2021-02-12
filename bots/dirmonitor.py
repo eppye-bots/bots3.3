@@ -187,7 +187,7 @@ def start():
     # this main thread get the results from the watch-thread(s).
     logger.info('Bots %(process_name)s started.',{'process_name':process_name})
     active_receiving = False
-    timeout = 2.0
+    timeout = float(botsglobal.ini.getint('dirmonitor','timeout',2))
     cond.acquire()
     while True:
         #this functions as a buffer: all events go into set tasks.
