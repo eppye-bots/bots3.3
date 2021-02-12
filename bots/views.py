@@ -460,7 +460,10 @@ def logfiler(request,*kw,**kwargs):
             return response
         else:
             logfiles = sorted(os.listdir(logpath), key=lambda s: s.lower())
-            return django.shortcuts.render(request,'bots/logfiler.html',{'log':log, 'logdata':logdata, 'logfiles':logfiles})
+            try:
+                return django.shortcuts.render(request,'bots/logfiler.html',{'log':log, 'logdata':logdata, 'logfiles':logfiles})
+            except:
+                return django.shortcuts.render(request,'bots/logfiler.html',{'log':log, 'logdata':'File cannot be displayed', 'logfiles':logfiles})
 
 def ccodecsv(request,*kw,**kwargs):
     ''' handles download/upload of csv files from/to ccode tables.'''
