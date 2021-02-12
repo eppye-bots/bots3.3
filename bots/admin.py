@@ -11,11 +11,14 @@ from django.contrib.auth.models import User
 from . import models
 from . import botsglobal
 
+from django.utils.html import format_html
+from django.urls import reverse
 
 class BotsAdmin(admin.ModelAdmin):
     ''' all classes in this module are sub-classed from BotsAdmin.
     '''
     list_per_page = botsglobal.ini.getint('settings','adminlimit',botsglobal.ini.getint('settings','limit',30))
+    save_on_top = botsglobal.ini.getboolean('settings','save_on_top',False)
     save_as = True
     def activate(self, request, queryset):
         ''' handles the admin 'activate' action.'''
@@ -211,9 +214,21 @@ class MyRouteAdminForm(forms.ModelForm):
         return self.cleaned_data
 
 class RoutesAdmin(BotsAdmin):
+    def fromchannel_link(self, obj):
+        url = reverse('admin:bots_channel_change', args=(obj.fromchannel_id,))
+        return format_html("<a href='{}'>{}</a>", url, obj.fromchannel)
+    fromchannel_link.admin_order_field = 'fromchannel'
+    fromchannel_link.short_description = 'fromchannel'
+
+    def tochannel_link(self, obj):
+        url = reverse('admin:bots_channel_change', args=(obj.tochannel_id,))
+        return format_html("<a href='{}'>{}</a>", url, obj.tochannel)
+    tochannel_link.admin_order_field = 'tochannel'
+    tochannel_link.short_description = 'tochannel'
+
     actions = ('activate',)
     form = MyRouteAdminForm
-    list_display = ('active','indefaultrun','idroute','seq','routescript','fromchannel','fromeditype','frommessagetype','translt','alt','frompartner','topartner','tochannel','defer','toeditype','tomessagetype','frompartner_tochannel','topartner_tochannel','testindicator','zip_incoming','zip_outgoing',)
+    list_display = ('active','indefaultrun','idroute','seq','routescript','fromchannel_link','fromeditype','frommessagetype','translt','alt','frompartner','topartner','tochannel_link','defer','toeditype','tomessagetype','frompartner_tochannel','topartner_tochannel','testindicator','zip_incoming','zip_outgoing',)
     list_display_links = ('idroute',)
     list_filter = ('active','notindefaultrun','idroute','fromeditype')
     ordering = ('idroute','seq')
