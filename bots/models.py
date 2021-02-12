@@ -266,8 +266,8 @@ class channel(models.Model):
     charset = StripCharField(max_length=35,default='us-ascii')     #20120828: not used anymore; in database is NOT NULL
     host = StripCharField(max_length=256,blank=True)
     port = models.PositiveIntegerField(default=0,blank=True,null=True)
-    username = StripCharField(max_length=35,blank=True)
-    secret = StripCharField(max_length=35,blank=True,verbose_name='password')
+    username = StripCharField(max_length=256,blank=True)
+    secret = StripCharField(max_length=256,blank=True,verbose_name='password')
     starttls = models.BooleanField(default=False,verbose_name='No check from-address',help_text='Do not check if incoming "from" email addresses is known.')       #20091027: used as 'no check on "from:" email address'
     apop = models.BooleanField(default=False,verbose_name='No check to-address',help_text='Do not check if incoming "to" email addresses is known.')       #20110104: used as 'no check on "to:" email address'
     remove = models.BooleanField(default=False,help_text='Delete incoming edi files after reading.<br>Use in production else files are read again and again.')
