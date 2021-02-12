@@ -4,9 +4,11 @@
 	<ul>
 		<a {% if not bots_touchscreen %} href="/home" {% endif %} >{% trans 'Home' %}</a>
 		<li><a href="/home/">{% trans 'Home' %}{% if not bots_touchscreen %} *{% endif %}</a></li>
-		<li><a href="https://botsdocs.readthedocs.io/en/latest/guide-for-botsmonitor/index.html">{% trans 'Help' %}</a></li>
+		<li><a target="_blank" href="https://botsdocs.readthedocs.io/en/latest/guide-for-botsmonitor/index.html">{% trans 'Help' %}</a></li>
 		<li><a href="/logout/">{% trans 'Log out' %}</a></li>
-		<li><a href="/password_change/">{% trans 'Change password' %}</a></li>
+		{% if menu_changepassword %}
+			<li><a href="/password_change/">{% trans 'Change password' %}</a></li>
+		{% endif %}
 	</ul>
 	<ul>
 		<a {% if not bots_touchscreen %} href="/incoming/?lastrun=1" {% endif %} >{% trans 'Last run' %}</a>
