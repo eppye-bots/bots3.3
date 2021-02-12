@@ -393,10 +393,17 @@ def filer(request,*kw,**kwargs):
                     else:   #guess safe choice for charset. alt1: get charset by looking forward (until translation). alt2:try with utf-8, if error iso-8859-1
                         ta_object.content = botslib.readdata(ta_object.filename,charset='us-ascii',errors='ignore')
                     ta_object.has_file = True
-                    if ta_object.editype == 'x12':
-                        ta_object.content = viewlib.indent_x12(ta_object.content)
-                    elif ta_object.editype == 'edifact':
-                        ta_object.content = viewlib.indent_edifact(ta_object.content)
+                    try: # if this fails, just display as-is (eg. indent_xml only works with ascii!)
+                        if ta_object.editype == 'x12':
+                            ta_object.content = viewlib.indent_x12(ta_object.content)
+                        elif ta_object.editype == 'edifact':
+                            ta_object.content = viewlib.indent_edifact(ta_object.content)
+                        elif ta_object.editype in ('xml','xmlnocheck') or ta_object.content.startswith('<?xml '):
+                            ta_object.content = viewlib.indent_xml(ta_object.content)
+                        elif ta_object.editype in ('json','jsonnocheck') or (ta_object.content.startswith('{') and ta_object.content.endswith('}')):
+                            ta_object.content = viewlib.indent_json(ta_object.content)
+                    except:
+                        pass
                 else:
                     ta_object.has_file = False
                     ta_object.content = 'No file available for display.'
