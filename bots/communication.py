@@ -421,7 +421,12 @@ class _comsession(object):
                     return 0
                 attachment_filename = msg.get_filename('')
                 if self.userscript and hasattr(self.userscript,'accept_incoming_attachment'):
-                    accept_attachment = botslib.runscript(self.userscript,self.scriptname,'accept_incoming_attachment',channeldict=self.channeldict,ta=ta_from,content=content,contenttype=contenttype,attachment_filename=attachment_filename)
+                    # MJG 10/01/2020 add filename parameter, to allow filtering based on filename
+                    if msg.get_filename():
+                        filename=self.checkheaderforcharset(msg.get_filename())
+                    else:
+                        filename = 'body'
+                    accept_attachment = botslib.runscript(self.userscript,self.scriptname,'accept_incoming_attachment',channeldict=self.channeldict,ta=ta_from,charset=charset,content=content,contenttype=contenttype,filename=filename)
                     if not accept_attachment:
                         return 0
                 filesize = len(content)
