@@ -40,9 +40,11 @@ def start():
     Config-option:
         -c<directory>        directory for configuration files (default: config).
     Routes: list of routes to run. Default: all active routes (in the database)
+        -g<group>            group of routes to run, configured in bots.ini section [routegroups]
 
     '''%{'name':os.path.basename(sys.argv[0]),'version':botsglobal.version}
     configdir = 'config'
+    routegroup = None
     commandspossible = ['--automaticretrycommunication','--resend','--rereceive','--new']
     commandstorun = []
     routestorun = []    #list with routes to run
@@ -52,6 +54,11 @@ def start():
             configdir = arg[2:]
             if not configdir:
                 print('Error: configuration directory indicated, but no directory name.')
+                sys.exit(1)
+        elif arg.startswith('-g'):
+            routegroup = arg[2:]
+            if not routegroup:
+                print 'Error: route group indicated, but no group name.'
                 sys.exit(1)
         elif arg in commandspossible:
             commandstorun.append(arg)
@@ -70,6 +77,10 @@ def start():
     botsinit.generalinit(configdir)     #find locating of bots, configfiles, init paths etc.
     #set working directory to bots installation. advantage: when using relative paths it is clear that this point paths within bots installation.
     os.chdir(botsglobal.ini.get('directories','botspath'))
+
+    if routegroup:
+        for route in botsglobal.ini.get('routegroups',routegroup).split(','):
+            routestorun.append(route.strip())
 
     #**************check if another instance of bots-engine is running/if port is free******************************
     try:
