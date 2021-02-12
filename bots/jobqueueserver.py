@@ -104,8 +104,8 @@ def launcher(logger,port,lauchfrequency,maxruntime,startupdelay):
                 timer.start()
                 result = process.wait()
                 timer.cancel()
-                time_taken = time.time() - starttime
-                logger.info('Finished job %(job)s, elapsed time %(time_taken)s, result %(result)s',{'job':jobnumber,'time_taken':time_taken,'result':result})
+                time_taken = round(time.time() - starttime,1)
+                logger.info('Finished job %(job)s, elapsed time %(time_taken)s seconds, result %(result)s',{'job':jobnumber,'time_taken':time_taken,'result':result})
                 nr_runs_NOK = 0
         except Exception as msg:
             nr_runs_NOK += 1
