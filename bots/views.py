@@ -825,13 +825,16 @@ def sendtestmailmanagers(request,*kw,**kwargs):
 
     from django.core.mail import mail_managers
     try:
-        mail_managers('testsubject', 'test content of report')
-    except:
+        content = ['Email server info from settings.py',
+                   '',
+                   'Host: %s' %botsglobal.settings.EMAIL_HOST,
+                   'Port: %s' %botsglobal.settings.EMAIL_PORT,
+                   'TLS:  %s' %botsglobal.settings.EMAIL_USE_TLS]
+        mail_managers(_(u'Test mail from Bots'), '\n'.join(content))
+        notification = _(u'Sending test mail succeeded.')
+    except Exception as notification:
         txt = botslib.txtexc()
-        messages.add_message(request, messages.INFO, 'Sending test mail failed.')
-        botsglobal.logger.info('Sending test mail failed, error:\n%(txt)s', {'txt':txt})
-        return django.shortcuts.redirect('/home')
-    notification = 'Sending test mail succeeded.'
+        botsglobal.logger.info(_(u'Sending test mail failed, error:\n%(txt)s'), {'txt':txt})
     messages.add_message(request, messages.INFO, notification)
     botsglobal.logger.info(notification)
     return django.shortcuts.redirect('/home')
