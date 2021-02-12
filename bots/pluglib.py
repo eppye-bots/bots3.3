@@ -291,14 +291,18 @@ def make_plugin(cleaned_data,filename):
     pluginzipfilehandler = zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED)
 
     plugs = all_database2plug(cleaned_data)
-    plugsasstring = make_plugs2string(plugs)
+    if 'dbfilter' in cleaned_data:
+        plugsasstring = make_plugs2string(plugs,cleaned_data['dbfilter'])
+    else:
+        plugsasstring = make_plugs2string(plugs)
     pluginzipfilehandler.writestr('botsindex.py',plugsasstring.encode('utf-8'))      #write index file to pluginfile
     botsglobal.logger.debug('    Write in index:\n %(index)s',{'index':plugsasstring})
 
     files4plugin = plugout_files(cleaned_data)
     for dirname, defaultdirname in files4plugin:
-        pluginzipfilehandler.write(dirname,defaultdirname)
-        botsglobal.logger.debug('    Write file "%(file)s".',{'file':defaultdirname})
+        if 'dbfilter' not in cleaned_data or cleaned_data['dbfilter'] in dirname:
+            pluginzipfilehandler.write(dirname,defaultdirname)
+            botsglobal.logger.debug(u'    Write file "%(file)s".',{'file':defaultdirname})
 
     pluginzipfilehandler.close()
 
@@ -348,23 +352,33 @@ def database2plug(db_table):
                     plug['fields']['testpath'] = plug['fields']['testpath'].replace(botsglobal.ini.get('directories','botssys_org'),'botssys',1)
     return plugs
 
-def make_plugs2string(plugs):
+def make_plugs2string(plugs,dbfilter=None):
     ''' return plugs (serialized objects) as unicode strings.
     '''
-    lijst = ['# -*- coding: utf-8 -*-\n','import datetime',"version = '%s'" % (botsglobal.version),'plugins = [']
-    lijst.extend(plug2string(plug['fields']) for plug in plugs)
-    lijst.append(']\n')
+    lijst = [u'# -*- coding: utf-8 -*-',u'import datetime',"version = '%s'" % (botsglobal.version),'plugins = [']
+    if dbfilter:
+        for plug in plugs:
+            pstring = plug2string(plug['fields'])
+            if dbfilter in pstring:
+                lijst.append(pstring)
+    else:
+        lijst.extend([plug2string(plug['fields']) for plug in plugs])
+    lijst.append(u']\n')
     return '\n'.join(lijst)
 
 def plug2string(plugdict):
     ''' like repr() for a dict, but:
         - starts with 'plugintype'
+        - next is the "ID" or key fields for the record, for readability of botsindex
         - other entries are sorted; this because of predictability
         - produce unicode by using str().decode(unicode_escape): bytes->unicode; converts escaped unicode-chrs to correct unicode. repr produces these.
         str().decode(): bytes->unicode
         str().encode(): unicode->bytes
     '''
     terug = '{' + repr('plugintype') + ': ' + repr(plugdict.pop('plugintype'))
+    for key in ('idroute','idchannel','idpartner','ccodeid','leftcode','rightcode'): # put these "ID" fields first
+        if key in plugdict:
+            terug += ', ' + repr(key) + ': ' + repr(plugdict.pop(key))
     for key in sorted(plugdict.keys()):
         terug += ', ' + repr(key) + ': ' + repr(plugdict[key])
     terug += '},'

@@ -611,6 +611,7 @@ def plugout_backup_core(request,*kw,**kwargs):
                                     'logfiles':False,
                                     'config':False,
                                     'database':False,
+                                    'dbfilter':False
                                     }
         pluglib.make_plugin(dummy_for_cleaned_data,filename)
     except Exception as msg:
@@ -641,7 +642,10 @@ def plugout(request,*kw,**kwargs):
                     botsglobal.logger.info('Plugin "%(file)s" created successful.',{'file':filename})
                     response = django.http.HttpResponse(open(filename, 'rb').read(), content_type='application/zip')
                     # response['Content-Length'] = os.path.getsize(filename)
-                    response['Content-Disposition'] = 'attachment; filename=' + 'plugin' + time.strftime('_%Y%m%d') + '.zip'
+                    if 'dbfilter' in form.cleaned_data:
+                        response['Content-Disposition'] = 'attachment; filename=' + 'plugin_' + form.cleaned_data['dbfilter'] + time.strftime('_%Y%m%d') + '.zip'
+                    else:
+                        response['Content-Disposition'] = 'attachment; filename=' + 'plugin' + time.strftime('_%Y%m%d') + '.zip'
                     return response
     return django.shortcuts.redirect('/home')
 
