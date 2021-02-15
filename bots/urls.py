@@ -40,7 +40,7 @@ urlpatterns = [
     url(r'^plugout.*', superuser_required(views.plugout)),
     url(r'^sendtestmail.*', superuser_required(views.sendtestmailmanagers)),
     #catch-all
-    url(r'^.*', 'bots.views.index'),
+    url(r'^.*', views.index),
     ]
 
 handler500 = views.server_error
