@@ -101,52 +101,71 @@ class _comsession(object):
         self.rootidta = rootidta
 
     def run(self):
+        # Max connection tries; bots tries to connect several times per run. this is probably a better strategy than having long time-outs.
+        # This is useful for both incoming and outgoing channels. TODO later version: setting per channel  [MJG not sure this is needed per channel]
+        maxconnectiontries = botsglobal.ini.getint('settings','maxconnectiontries',3)
+        nr_connectiontries = 0
+
         if self.channeldict['inorout'] == 'out':
             self.precommunicate()
-            self.connect()
+
+            while True:
+                nr_connectiontries += 1
+                try:
+                    #print('connect',nr_connectiontries)
+                    self.connect()
+                except Exception as exc:
+                    #print(exc)
+                    if nr_connectiontries >= maxconnectiontries:
+                        raise(exc) from exc # just re-raise the original exception, no context chain
+                else:
+                    break # out-connection OK
+
             self.outcommunicate()
             self.disconnect()
             self.archive()
+
         else:   #do incommunication
             if self.command == 'new': #only in-communicate for new run
-                #~ print('in communication run 1')
                 #handle maxsecondsperchannel: use global value from bots.ini unless specified in channel. (In database this is field 'rsrv2'.)
-                self.maxsecondsperchannel = self.channeldict['rsrv2'] if self.channeldict['rsrv2'] is not None and self.channeldict['rsrv2'] > 0 else botsglobal.ini.getint('settings','maxsecondsperchannel',sys.maxsize)
-                #bots tries to connect several times. this is probably a better stategy than having long time-outs.
-                max_nr_connect_tries = botsglobal.ini.getint('settings','maxconnectiontries',3)        #how often does bots try to connect. TODO later version: setting per channel
-                nr_connect_tries = 0
+                # TODO: MJG in hindsight, a "maxfiles" value would be more useful. Sometimes in-channel is very fast and out-channel
+                # is very slow. If bots receives 1000 files in 30 seconds then they have to be sent even if it takes 3 hours. 
+                # I have needed to carefully "fine-tune" maxseconds on fast in-channels.
+                self.maxsecondsperchannel = botsglobal.ini.getint('settings','maxsecondsperchannel',sys.maxsize)
+                try:
+                    secs = int(self.channeldict['rsrv2'])
+                    if secs > 0:
+                        self.maxsecondsperchannel = secs
+                except:
+                    pass
+                # Max failures; bots keeps count of consecutive failures across runs for an in-channel before reporting a process error
+                # from channel. should be integer, but only textfields were left. so might be None->use 0.
+                maxfailures = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
+                domain = (self.channeldict['idchannel'] + '_failure')[:35]
                 while True:
-                    nr_connect_tries += 1
+                    nr_connectiontries += 1
                     try:
-                        #~ print('in communication run 2')
+                        #~print('connect try',nr_connectiontries)
                         self.connect()
-                        #~ print('in communication run 3')
-                    except:
-                        #check if max nr tries is reached
-                        if nr_connect_tries < max_nr_connect_tries:
-                            continue
-                        #in-connection failed (no files are received yet via this channel)
-                        #store in database how many failed connection tries for this channel.
-                        #useful if bots is scheduled quite often, and limiting number of error-reports eg when server is down.
-                        #max_nr_retry : from channel. should be integer, but only textfields where left. so might be ''/None->use 0
-                        max_nr_retry = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
-                        if max_nr_retry:
-                            domain = 'bots_communication_failure_' + self.channeldict['idchannel']
-                            nr_retry = botslib.unique(domain)  #update nr_retry in database
-                            if nr_retry >= max_nr_retry:
-                                botslib.unique(domain,updatewith=0)    #reset nr_retry to zero
-                            else:
-                                return  #max_nr_retry is not reached. return without error
-                        raise
-                    finally:
+                    except Exception as exc:
+                        #~ print(exc)
+                        if nr_connectiontries >= maxconnectiontries:
+                            #in-connection failed (no files are received yet via this channel)
+                            #store in database how many consecutive failures for this channel.
+                            #only raise exception every multiple of maxfailures (use modulo, keep actual count)
+                            #useful if bots is scheduled quite often, and limiting number of error-reports eg when server is down.
+                            if maxfailures:
+                                nr_failures = botslib.unique(domain) # increment nr_failures counter in database
+                                if nr_failures % maxfailures != 0: 
+                                    botsglobal.logger.info('Communication failure %s on channel %s: %s',nr_failures,self.channeldict['idchannel'],msg)
+                                    return  #maxfailures is not reached. return without error
+                            raise exc from exc # just re-raise the original exception, no context chain
+                    else:
+                        #in-connection OK. Reset failure counter to zero
+                        if maxfailures:
+                            botslib.unique(domain,updatewith=0)
                         break
-                    # ~ else:
-                        # ~ #in-connection OK. Reset database entry.
-                        # ~ #max_nr_retry : get this from channel. should be integer, but only textfields where left. so might be ''/None->use 0
-                        # ~ max_nr_retry = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
-                        # ~ if max_nr_retry:
-                            # ~ domain = 'bots_communication_failure_' + self.channeldict['idchannel']
-                            # ~ botslib.unique(domain,updatewith=0)    #set nr_retry to zero
+
                 self.incommunicate()
                 self.disconnect()
             self.postcommunicate()
@@ -267,8 +286,8 @@ class _comsession(object):
                 confirmtype = ''
                 confirmasked = False
                 charset = row['charset']
-
-                if row['editype'] == 'email-confirmation': #outgoing MDN: message is already assembled
+                # MJG 15/01/2019 BUGFIX for automaticretrycommunication
+                if row['editype'] == 'email-confirmation' or self.command == 'automaticretrycommunication': # message is already assembled
                     outfilename = row['filename']
                 else:   #assemble message: headers and payload. Bots uses simple MIME-envelope; by default payload is an attachment
                     message = email.message.Message()
@@ -295,7 +314,7 @@ class _comsession(object):
                         reference = '123message-ID email should be unique123'
                         email_datetime = email.utils.formatdate(timeval=time.mktime(time.strptime('2013-01-23 01:23:45', '%Y-%m-%d %H:%M:%S')),localtime=True)
                     else:
-                        reference = email.utils.make_msgid(unicode(ta_to.idta))    #use transaction idta in message id.
+                        reference = email.utils.make_msgid(str(ta_to.idta))    #use transaction idta in message id.
                         email_datetime = email.utils.formatdate(localtime=True)
                     message.add_header('Message-ID',reference)
                     message.add_header('Date',email_datetime)
@@ -312,7 +331,7 @@ class _comsession(object):
                     if botsglobal.ini.getboolean('acceptance','runacceptancetest',False):
                         subject = '12345678'
                     else:
-                        subject = unicode(row['idta'])
+                        subject = str(row['idta'])
                     content = botslib.readdata_bin(row['filename'])     #get attachment from data file
                     if self.userscript and hasattr(self.userscript,'subject'):    #user exit to determine subject
                         subject = botslib.runscript(self.userscript,self.scriptname,'subject',channeldict=self.channeldict,ta=ta_to,subjectstring=subject,content=content)
@@ -352,7 +371,7 @@ class _comsession(object):
                         email.encoders.encode_base64(message)
 
                     #*******write email to file***************************
-                    outfilename = unicode(ta_to.idta)
+                    outfilename = str(ta_to.idta)
                     outfile = botslib.opendata_bin(outfilename, 'wb')
                     generator = email.generator.Generator(outfile, mangle_from_=False, maxheaderlen=78)
                     generator.flatten(message,unixfrom=False)
@@ -402,18 +421,23 @@ class _comsession(object):
                     return 0
                 attachment_filename = msg.get_filename('')
                 if self.userscript and hasattr(self.userscript,'accept_incoming_attachment'):
-                    accept_attachment = botslib.runscript(self.userscript,self.scriptname,'accept_incoming_attachment',channeldict=self.channeldict,ta=ta_from,content=content,contenttype=contenttype,attachment_filename=attachment_filename)
+                    # MJG 10/01/2020 add filename parameter, to allow filtering based on filename
+                    if msg.get_filename():
+                        filename=self.checkheaderforcharset(msg.get_filename())
+                    else:
+                        filename = 'body'
+                    accept_attachment = botslib.runscript(self.userscript,self.scriptname,'accept_incoming_attachment',channeldict=self.channeldict,ta=ta_from,charset=charset,content=content,contenttype=contenttype,filename=filename)
                     if not accept_attachment:
                         return 0
                 filesize = len(content)
                 ta_file = ta_from.copyta(status=FILEIN)
-                outfilename = unicode(ta_file.idta)
+                outfilename = str(ta_file.idta)
                 outfile = botslib.opendata_bin(outfilename, 'wb')
                 outfile.write(content)
                 outfile.close()
                 nrmimesaved += 1
                 ta_file.update(statust=OK,
-                                contenttype=contenttype,
+                                contenttype=contenttype[:35], # MJG 24/08/2016 truncate to fit in db
                                 filename=outfilename,
                                 filesize=filesize,
                                 divtext=attachment_filename)
@@ -478,12 +502,12 @@ class _comsession(object):
                 mdn_reference = '123message-ID email should be unique123'
                 mdn_datetime = email.utils.formatdate(timeval=time.mktime(time.strptime('2013-01-23 01:23:45', '%Y-%m-%d %H:%M:%S')),localtime=True)
             else:
-                mdn_reference = email.utils.make_msgid(unicode(ta_mdn.idta))    #we first have to get the mda-ta to make this reference
+                mdn_reference = email.utils.make_msgid(str(ta_mdn.idta))    #we first have to get the mda-ta to make this reference
                 mdn_datetime = email.utils.formatdate(localtime=True)
             message.add_header('Date',mdn_datetime)
             message.add_header('Message-ID', mdn_reference)
 
-            mdnfilename = unicode(ta_mdn.idta)
+            mdnfilename = str(ta_mdn.idta)
             mdnfile = botslib.opendata_bin(mdnfilename, 'wb')
             generator = email.generator.Generator(mdnfile, mangle_from_=False, maxheaderlen=78)
             generator.flatten(message,unixfrom=False)
@@ -689,8 +713,8 @@ class _comsession(object):
             ''' class for the {infile} parameter '''
             def __format__(self, format_spec):
                 if not format_spec:
-                    return unicode(self)
-                name,ext = os.path.splitext(unicode(self))
+                    return str(self)
+                name,ext = os.path.splitext(str(self))
                 if format_spec == 'ext':
                     return ext[1:] if ext.startswith('.') else ext
                 elif format_spec == 'name':
@@ -701,7 +725,7 @@ class _comsession(object):
         #handling of the 'unique' part in the filename
         #this was astriks ('*') in bots<-3.2, is now {unique}. Reason for change: more options in format via python formatstrings
         #old way (asteriks) will keep working
-        ta.unique = unicode(botslib.unique(self.channeldict['idchannel']))  #create unique part for attachment-filename; store in ta-object so is accessible for {unique}
+        ta.unique = str(botslib.unique(self.channeldict['idchannel']))  #create unique part for attachment-filename; store in ta-object so is accessible for {unique}
         tofilename = filename_mask.replace('*','{unique}')                  #replace 'old' way of making filenames unique by new way.
         ta.synall()
         if '{infile' in tofilename:
@@ -762,7 +786,7 @@ class file(_comsession):
                     else:
                         raise botslib.LockedFileError('Can not do a systemlock on this platform')
                 #open tofile
-                tofilename = unicode(ta_to.idta)
+                tofilename = str(ta_to.idta)
                 tofile = botslib.opendata_bin(tofilename, 'wb')
                 #copy
                 shutil.copyfileobj(fromfile,tofile,1048576)
@@ -885,7 +909,7 @@ class pop3(_comsession):
                                                     fromchannel=self.channeldict['idchannel'],idroute=self.idroute)
                 ta_to =   ta_from.copyta(status=FILEIN)
                 remove_ta = True
-                tofilename = unicode(ta_to.idta)
+                tofilename = str(ta_to.idta)
                 mailid = int(mail.split()[0])  #first 'word' is the message number/ID
                 maillines = self.session.retr(mailid)[1]        #alt: (header, messagelines, octets) = popsession.retr(messageID)
                 content = b'\n'.join(maillines)
@@ -994,7 +1018,7 @@ class imap4(_comsession):
                                                     fromchannel=self.channeldict['idchannel'],idroute=self.idroute)
                 ta_to =   ta_from.copyta(status=FILEIN)
                 remove_ta = True
-                filename = unicode(ta_to.idta)
+                filename = str(ta_to.idta)
                 # Get the message (header and body)
                 response, msg_data = self.session.uid('fetch',mail, '(RFC822)')
                 filehandler = botslib.opendata_bin(filename, 'wb')
@@ -1160,7 +1184,7 @@ class ftp(_comsession):
         try:            #some ftp servers give errors when directory is empty; catch these errors here
             files = self.session.nlst()
         except (ftplib.error_perm,ftplib.error_temp) as msg:
-            if unicode(msg)[:3] not in ['550','450']:
+            if str(msg)[:3] not in ['550','450']:
                 raise
 
         lijst = fnmatch.filter(files,self.channeldict['filename'])
@@ -1173,7 +1197,7 @@ class ftp(_comsession):
                                                     idroute=self.idroute)
                 ta_to =   ta_from.copyta(status=FILEIN)
                 remove_ta = True
-                tofilename = unicode(ta_to.idta)
+                tofilename = str(ta_to.idta)
                 try:
                     if self.channeldict['ftpbinary']:
                         tofile = botslib.opendata_bin(tofilename, 'wb')
@@ -1182,7 +1206,7 @@ class ftp(_comsession):
                         tofile = botslib.opendata(tofilename, 'wb',charset='latin-1')   #python3 gives back a 'string'.
                         self.session.retrlines('RETR ' + fromfilename, writeline_callback)
                 except ftplib.error_perm as msg:
-                    if unicode(msg)[:3] in ['550',]:     #we are trying to download a directory...
+                    if str(msg)[:3] in ['550',]:     #we are trying to download a directory...
                         raise botslib.BotsError('To be catched')
                     else:
                         raise
@@ -1363,7 +1387,7 @@ class ftpis(ftp):
 class sftp(_comsession):
     ''' SFTP: SSH File Transfer Protocol (SFTP is not FTP run over SSH, SFTP is not Simple File Transfer Protocol)
         standard port to connect to is port 22.
-        requires paramiko and pycrypto to be installed
+        requires paramiko to be installed
         based on class ftp and ftps above with code from demo_sftp.py which is included with paramiko
         Mike Griffin 16/10/2010
         Henk-jan ebbers 20110802: when testing I found that the transport also needs to be closed. So changed transport ->self.transport, and close this in disconnect
@@ -1373,8 +1397,10 @@ class sftp(_comsession):
     def connect(self):
         try:
             import paramiko
-        except:
-            raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko".')
+            if paramiko.__version__ < '2.0':
+                raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher (version %s installed)' %paramiko.__version__)
+        except ImportError:
+            raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher.')
         # setup logging if required
         ftpdebug = botsglobal.ini.getint('settings','ftpdebug',0)
         if ftpdebug > 0:
@@ -1389,6 +1415,9 @@ class sftp(_comsession):
         except:
             port = 22 # default port for sftp
 
+        #if password is empty string: use None. Else error can occur.
+        secret = self.channeldict['secret'] or None
+
         if self.userscript and hasattr(self.userscript,'hostkey'):
             hostkey = botslib.runscript(self.userscript,self.scriptname,'hostkey',channeldict=self.channeldict)
         else:
@@ -1399,13 +1428,13 @@ class sftp(_comsession):
                 pkey = paramiko.RSAKey.from_private_key_file(filename=privatekeyfile,password=pkeypassword)
             else:
                 pkey = paramiko.DSSKey.from_private_key_file(filename=privatekeyfile,password=pkeypassword)
+        # RSA private key (keyfile) and optional passphrase (secret) in channel without user script
+        elif self.channeldict['keyfile']:
+            pkey = paramiko.RSAKey.from_private_key_file(filename=self.channeldict['keyfile'],password=secret)
+            secret = None 
         else:
             pkey = None
 
-        if self.channeldict['secret']:  #if password is empty string: use None. Else error can occur.
-            secret = self.channeldict['secret']
-        else:
-            secret = None
         # now, connect and use paramiko Transport to negotiate SSH2 across the connection
         self.transport = paramiko.Transport((hostname,port))
         self.transport.connect(username=self.channeldict['username'],password=secret,hostkey=hostkey,pkey=pkey)
@@ -1448,7 +1477,7 @@ class sftp(_comsession):
                                                     idroute=self.idroute)
                 ta_to =   ta_from.copyta(status=FILEIN)
                 remove_ta = True
-                tofilename = unicode(ta_to.idta)
+                tofilename = str(ta_to.idta)
                 fromfile = self.session.open(fromfilename, 'r')    # SSH treats all files as binary. paramiko doc says: b-flag is ignored
                 content = fromfile.read()
                 filesize = len(content)
@@ -1552,7 +1581,7 @@ class xmlrpc(_comsession):
                                                     idroute=self.idroute)
                 ta_to =   ta_from.copyta(status=FILEIN)
                 remove_ta = True
-                tofilename = unicode(ta_to.idta)
+                tofilename = str(ta_to.idta)
                 tofile = botslib.opendata_bin(tofilename, 'wb')
                 simplejson.dump(content, tofile, skipkeys=False, ensure_ascii=False, check_circular=False)
                 tofile.close()
@@ -1663,7 +1692,7 @@ class db(_comsession):
                                                     idroute=self.idroute)
                 ta_to = ta_from.copyta(status=FILEIN)
                 remove_ta = True
-                tofilename = unicode(ta_to.idta)
+                tofilename = str(ta_to.idta)
                 botslib.writedata_pickled(tofilename,db_object)
                 filesize = os.path.getsize(botslib.abspathdata(tofilename))
             except:
@@ -1760,7 +1789,7 @@ class communicationscript(_comsession):
                     fromfile = open(fromfilename, 'rb')
                     filesize = os.fstat(fromfile.fileno()).st_size
                     #open tofile
-                    tofilename = unicode(ta_to.idta)
+                    tofilename = str(ta_to.idta)
                     tofile = botslib.opendata_bin(tofilename, 'wb')
                     #copy
                     shutil.copyfileobj(fromfile,tofile,1048576)
@@ -1797,7 +1826,7 @@ class communicationscript(_comsession):
                     ta_to = ta_from.copyta(status = FILEIN)
                     remove_ta = True
                     fromfile = open(fromfilename, 'rb')
-                    tofilename = unicode(ta_to.idta)
+                    tofilename = str(ta_to.idta)
                     tofile = botslib.opendata_bin(tofilename, 'wb')
                     content = fromfile.read()
                     filesize = len(content)
@@ -1955,7 +1984,7 @@ class http(_comsession):
                                                     idroute=self.idroute)
                 ta_to = ta_from.copyta(status=FILEIN)
                 remove_ta = True
-                tofilename = unicode(ta_to.idta)
+                tofilename = str(ta_to.idta)
                 tofile = botslib.opendata_bin(tofilename, 'wb')
                 tofile.write(outResponse.content)
                 tofile.close()

@@ -21,6 +21,7 @@
                 <th><button class="botsheader" >Channel</button></th>
                 <th><button class="botsheader" >FromPartner</button></th>
                 <th><button class="botsheader" >ToPartner</button></th>
+                <th><button class="botsheader" >Botskey</button></th>
                 <th><button class="botsheader" >Reference</button></th>
                 <th><button class="botsheader" >Size</button></th>
                 <th><button class="botsheader" >Error</button></th>
@@ -44,6 +45,7 @@
                 <td class="nowrap">{{row.channel}}</td>
                 <td class="nowrap">{{row.frompartner}}</td>
                 <td class="nowrap">{{row.topartner}}</td>
+                <td>{{row.botskey}}</td>
                 <td>{{row.reference}}</td>
                 <td class="nowrap">{% if row.filesize %}{{row.filesize|filesizeformat}}{% endif %}</td>
                 <td style="white-space: pre;">{{row.errortext}}</td>

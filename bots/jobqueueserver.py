@@ -2,14 +2,14 @@
 from __future__ import print_function
 import sys
 import os
-import xmlrpclib
-from SimpleXMLRPCServer import SimpleXMLRPCServer
+import xmlrpc.client
+from xmlrpc.server import SimpleXMLRPCServer
 import time
 import subprocess
 import threading
-import botsinit
-import botslib
-import botsglobal
+from . import botsinit
+from . import botslib
+from . import botsglobal
 
 
 #-------------------------------------------------------------------------------
@@ -36,7 +36,7 @@ class Jobqueue(object):
                     self.logger.info('Duplicate job, changed priority to %(priority)s: %(task)s',{'priority':priority,'task':task})
                     self._sort()
                     return 0        #zero or other code??
-                else:
+                elif not botsglobal.ini.getboolean('jobqueue','allowduplicates',False):
                     self.logger.info('Duplicate job not added: %(task)s',{'task':task})
                     return 4
         #add the job
@@ -61,17 +61,33 @@ class Jobqueue(object):
         self.logger.debug('Job queue changed. New queue: %(queue)s',{'queue':''.join(['\n    ' + repr(job) for job in self.jobqueue])})
 
 #-------------------------------------------------------------------------------
-def action_when_time_out(logger,maxruntime,jobnumber,task_to_run):
+def action_when_time_out(logger,maxruntime,jobnumber,task_to_run,process):
     logger.error('Job %(job)s exceeded maxruntime of %(maxruntime)s minutes',{'job':jobnumber,'maxruntime':maxruntime})
     botslib.sendbotserrorreport('[Bots Job Queue] - Job exceeded maximum runtime',
                                 'Job %(job)s exceeded maxruntime of %(maxruntime)s minutes:\n %(task)s' % {'job':jobnumber,'maxruntime':maxruntime,'task':task_to_run})
 
+    # Mike Griffin  01/02/2019
+    # Optional: Kill the process after maxruntime is reached
+    # In some rare instances, a bots engine process may hang forever and prevent any more jobs from running.
+    # I have been unable to locate the cause (maybe just windows?) and seems to be after routes have completed!
+    # The maxruntime should have a good margin above the longest normal running jobs, so that this only
+    # happens when absolutely necessary. Bots would need to do a crash recovery on the next run if this
+    # interrupted running routes. In my experience this doesn't happen though.
+    if botsglobal.ini.getboolean('jobqueue','killaftermaxruntime',False):
+        process.kill()
+        logger.error('Job %s with PID %s has been KILLED',jobnumber,process.pid)
+
 #-------------------------------------------------------------------------------
-def launcher(logger,port,lauchfrequency,maxruntime):
+def launcher(logger,port,lauchfrequency,maxruntime,startupdelay):
     DEVNULL = open(os.devnull, 'wb')
-    xmlrpcclient = xmlrpclib.ServerProxy('http://localhost:' + unicode(port))
+    xmlrpcclient = xmlrpc.client.ServerProxy('http://localhost:' + str(port))
     maxseconds = maxruntime*60
-    time.sleep(3)   #allow jobqserver to start
+    # Mike Griffin 26/05/2020
+    # startupdelay should be at least a few seconds to give time for jobqueue server to start
+    # longer delay may be configured to give time for windows updates and reboots (risk crashing Bots otherwise)
+    logger.info(u'Jobqueue launcher will wait for %s seconds.',startupdelay)
+    time.sleep(startupdelay)
+    logger.info(u'Jobqueue launcher starting.')
     nr_runs_NOK = 0
     while True:
         try:
@@ -84,12 +100,12 @@ def launcher(logger,port,lauchfrequency,maxruntime):
                 logger.info('Starting job %(job)s',{'job':jobnumber})
                 starttime = time.time()
                 process = subprocess.Popen(task_to_run,stdout=DEVNULL,stderr=DEVNULL)
-                timer = threading.Timer(maxseconds, action_when_time_out,args=(logger,maxruntime,jobnumber,task_to_run))
+                timer = threading.Timer(maxseconds,action_when_time_out,args=(logger,maxruntime,jobnumber,task_to_run,process))
                 timer.start()
                 result = process.wait()
                 timer.cancel()
-                time_taken = time.time() - starttime
-                logger.info('Finished job %(job)s, elapsed time %(time_taken)s, result %(result)s',{'job':jobnumber,'time_taken':time_taken,'result':result})
+                time_taken = round(time.time() - starttime,1)
+                logger.info('Finished job %(job)s, elapsed time %(time_taken)s seconds, result %(result)s',{'job':jobnumber,'time_taken':time_taken,'result':result})
                 nr_runs_NOK = 0
         except Exception as msg:
             nr_runs_NOK += 1
@@ -99,7 +115,7 @@ def launcher(logger,port,lauchfrequency,maxruntime):
             if nr_runs_NOK >= 10:
                 logger.error('More than 10 consecutive errors in the bots-jobqueueserver, shutting down now')
                 botslib.sendbotserrorreport('[Bots Job Queue] bots-jobqueueserver has stopped',
-                                            'More than 10 consecutive errors occured in the bots-jobqueueserver, so jobqueue-server is stopped now.'})
+                                            'More than 10 consecutive errors occured in the bots-jobqueueserver, so jobqueue-server is stopped now.')
                 sys.exit(1)
 
 
@@ -143,14 +159,14 @@ def start():
 
     #start launcher thread
     lauchfrequency = botsglobal.ini.getint('jobqueue','lauchfrequency',5)
+    startupdelay = botsglobal.ini.getint('jobqueue','startupdelay',5)
     maxruntime = botsglobal.ini.getint('settings','maxruntime',60)
-    launcher_thread = threading.Thread(name='launcher', target=launcher, args=(logger,port,lauchfrequency,maxruntime))
+    launcher_thread = threading.Thread(name='launcher', target=launcher, args=(logger,port,lauchfrequency,maxruntime,startupdelay))
     launcher_thread.daemon = True
     launcher_thread.start()
-    logger.info('Jobqueue launcher started.')
 
     #the main thread is the xmlrpc server: all adding, getting etc for jobqueue is done via xmlrpc.
-    logger.info('Jobqueue server started.')
+    logger.info('Jobqueue server starting.')
     server = SimpleXMLRPCServer(('localhost', port),logRequests=False)
     server.register_instance(Jobqueue(logger))
     try:

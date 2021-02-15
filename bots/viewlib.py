@@ -81,7 +81,7 @@ def django_trace_origin(idta,where):
         '''
         for parent in get_parent(ta_object):
             donelijst.append(parent.idta)
-            for key,value in where.items():
+            for key,value in list(where.items()):
                 if getattr(parent,key) != value:
                     break
             else:   #all where-criteria are true; check if we already have this ta_object
@@ -359,3 +359,36 @@ def indent_edifact(content):
     if content.count('\n') > 4:
         return content
     return EDIFACT_INDENT.sub("'\n", content)
+
+def indent_xml(content):
+    # for viewing xml in nice indented format
+    # toprettyxml is not so pretty! It needs more tweaking to remove excessive newlines and whitespace
+    # there are add-on libraries that could do better, but this way does not have any dependencies
+    lines = []
+    open = False
+    for line in xml.dom.minidom.parseString(content).toprettyxml(indent='    ',newl='\n').split('\n'):
+        if line.lstrip().startswith('</'):
+            if open:
+                lines[-1] += line.lstrip()
+                open = False
+            else:
+                lines.append(line)
+        elif line.lstrip().startswith('<'):
+            lines.append(line)
+            if line.rstrip().endswith('/>'):
+                open = False
+            else:
+                open = True
+        else:
+            lines[-1] += line.lstrip()
+    return '\n'.join(lines)
+
+def indent_json(content):
+    # for viewing json in nice indented format
+    # unfortunately, sequencing is not preserved though :-(
+    import json
+    try:
+        parsed = json.loads(content)
+        return json.dumps(parsed, indent=4, sort_keys=False, separators=(',', ': '))
+    except:
+        return content

@@ -169,7 +169,7 @@ class new(object):
                         'messagetype':routedict['tomessagetype'],
                         'testindicator':routedict['testindicator'],
                         }
-            towhere = dict((key, value) for key,value in towhere.items() if value)   #remove nul-values from dict
+            towhere = dict((key, value) for key,value in list(towhere.items()) if value)   #remove nul-values from dict
             wherestring = ' AND '.join(key+'=%('+key+')s ' for key in towhere)
             if routedict['frompartner_tochannel_id']:   #use frompartner_tochannel in where-clause of query (partner/group dependent outchannel
                 towhere['frompartner_tochannel_id'] = routedict['frompartner_tochannel_id']

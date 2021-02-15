@@ -338,7 +338,7 @@ class Outmessage(message.Message):
                     if '.' in value:
                         lengthcorrection += 1
                 try:
-                    value = unicode(decimal.Decimal(value))
+                    value = str(decimal.Decimal(value))
                 except:
                     self.add2errorlist('[F25]: Record "%(record)s" field "%(field)s" numerical format not valid: "%(content)s".\n'%
                                         {'field':field_definition[ID],'content':value,'record':self.mpathformat(structure_record[MPATH])})
@@ -357,7 +357,7 @@ class Outmessage(message.Message):
                         lengthcorrection += 1
                 try:
                     dec_value = decimal.Decimal(value)
-                    value = unicode(dec_value.quantize(decimal.Decimal('10e-%d'%field_definition[DECIMALS])))
+                    value = str(dec_value.quantize(decimal.Decimal('10e-%d'%field_definition[DECIMALS])))
                 except:
                     self.add2errorlist('[F26]: Record "%(record)s" field "%(field)s" numerical format not valid: "%(content)s".\n'%
                                         {'field':field_definition[ID],'content':value,'record':self.mpathformat(structure_record[MPATH])})
@@ -374,7 +374,7 @@ class Outmessage(message.Message):
                         lengthcorrection += 1
                 try:
                     dec_value = decimal.Decimal(value).shift(field_definition[DECIMALS])
-                    value = unicode(dec_value.quantize(NODECIMAL))
+                    value = str(dec_value.quantize(NODECIMAL))
                 except:
                     self.add2errorlist('[F27]: Record "%(record)s" field "%(field)s" numerical format not valid: "%(content)s".\n'%
                                         {'field':field_definition[ID],'content':value,'record':self.mpathformat(structure_record[MPATH])})
@@ -397,7 +397,7 @@ class Outmessage(message.Message):
             if field_definition[BFORMAT] == 'R':    #floating point: use all decimals received
                 value = value.zfill(field_definition[MINLENGTH] )
             elif field_definition[BFORMAT] == 'N':  #fixed decimals; round
-                value = unicode(decimal.Decimal(value).quantize(decimal.Decimal('10e-%d'%field_definition[DECIMALS])))
+                value = str(decimal.Decimal(value).quantize(decimal.Decimal('10e-%d'%field_definition[DECIMALS])))
                 value = value.zfill(field_definition[MINLENGTH])
                 value = value.replace('.',self.ta_info['decimaal'],1)    #replace '.' by required decimal sep.
             elif field_definition[BFORMAT] == 'I':  #implicit decimals
@@ -496,7 +496,7 @@ class fixed(Outmessage):
                 else:
                     value = '0'.zfill(field_definition[MINLENGTH] )
             elif field_definition[BFORMAT] == 'N':  #fixed decimals; round
-                value = unicode(decimal.Decimal('0').quantize(decimal.Decimal(10) ** -field_definition[DECIMALS]))
+                value = str(decimal.Decimal('0').quantize(decimal.Decimal(10) ** -field_definition[DECIMALS]))
                 if field_definition[FORMAT] == 'NL':    #if field format is numeric right aligned
                     value = value.ljust(field_definition[MINLENGTH])
                 elif field_definition[FORMAT] == 'NR':    #if field format is numeric right aligned
@@ -506,7 +506,7 @@ class fixed(Outmessage):
                 value = value.replace('.',self.ta_info['decimaal'],1)    #replace '.' by required decimal sep.
             elif field_definition[BFORMAT] == 'I':  #implicit decimals
                 dec_value = decimal.Decimal('0') * 10**field_definition[DECIMALS]
-                value = unicode(dec_value.quantize(NODECIMAL ))
+                value = str(dec_value.quantize(NODECIMAL ))
                 value = value.zfill(field_definition[MINLENGTH])
         return value
 
@@ -521,7 +521,7 @@ class idoc(fixed):
 
     def _canonicalfields(self,node_instance,record_definition):
         if self.ta_info['automaticcount']:
-            node_instance.record.update({'MANDT':self.ta_info['MANDT'],'DOCNUM':self.ta_info['DOCNUM'],'SEGNUM':unicode(self.recordnumber),'PSGNUM':unicode(self.headerrecordnumber),'HLEVEL':unicode(len(record_definition[MPATH]))})
+            node_instance.record.update({'MANDT':self.ta_info['MANDT'],'DOCNUM':self.ta_info['DOCNUM'],'SEGNUM':str(self.recordnumber),'PSGNUM':str(self.headerrecordnumber),'HLEVEL':str(len(record_definition[MPATH]))})
         else:
             node_instance.record.update({'MANDT':self.ta_info['MANDT'],'DOCNUM':self.ta_info['DOCNUM']})
         super(idoc,self)._canonicalfields(node_instance,record_definition)
@@ -653,7 +653,7 @@ class xml(Outmessage):
         #collect all values used as attributes from noderecord***************************
         attributemarker = self.ta_info['attributemarker']
         attributedict = {}  #is a dict of dicts
-        for key,value in noderecord.items():
+        for key,value in list(noderecord.items()):
             if attributemarker in key:
                 field,attribute = key.split(attributemarker,1)
                 attributedict.setdefault(field,{})
@@ -688,7 +688,7 @@ class xmlnocheck(xml):
         #***collect from noderecord all entities and attributes***************************
         attributemarker = self.ta_info['attributemarker']
         attributedict = {}  #is a dict of dicts
-        for key,value in noderecord.items():
+        for key,value in list(noderecord.items()):
             if attributemarker in key:
                 field,attribute = key.split(attributemarker,1)
                 attributedict.setdefault(field,{})

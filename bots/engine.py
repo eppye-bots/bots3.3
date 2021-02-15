@@ -40,9 +40,11 @@ def start():
     Config-option:
         -c<directory>        directory for configuration files (default: config).
     Routes: list of routes to run. Default: all active routes (in the database)
+        -g<group>            group of routes to run, configured in bots.ini section [routegroups]
 
     '''%{'name':os.path.basename(sys.argv[0]),'version':botsglobal.version}
     configdir = 'config'
+    routegroup = None
     commandspossible = ['--automaticretrycommunication','--resend','--rereceive','--new']
     commandstorun = []
     routestorun = []    #list with routes to run
@@ -52,6 +54,11 @@ def start():
             configdir = arg[2:]
             if not configdir:
                 print('Error: configuration directory indicated, but no directory name.')
+                sys.exit(1)
+        elif arg.startswith('-g'):
+            routegroup = arg[2:]
+            if not routegroup:
+                print('Error: route group indicated, but no group name.')
                 sys.exit(1)
         elif arg in commandspossible:
             commandstorun.append(arg)
@@ -71,6 +78,10 @@ def start():
     #set working directory to bots installation. advantage: when using relative paths it is clear that this point paths within bots installation.
     os.chdir(botsglobal.ini.get('directories','botspath'))
 
+    if routegroup:
+        for route in botsglobal.ini.get('routegroups',routegroup).split(','):
+            routestorun.append(route.strip())
+
     #**************check if another instance of bots-engine is running/if port is free******************************
     try:
         engine_socket = botslib.check_if_other_engine_is_running()
@@ -85,10 +96,11 @@ def start():
         botsglobal.logger = botsinit.initenginelogging(process_name)
         atexit.register(logging.shutdown)
     except Exception as msg:
+        print('Error initialising logging:' + msg)
         botslib.sendbotserrorreport('[Bots severe error] Bots is not running anymore','Bots does not run because logging is not possible.\nOften a rights problem.\n')
         sys.exit(1)
     else:
-        if botsglobal.ini.get('settings','log_file_number','') != 'daily':
+        if botsglobal.ini.get('settings','log_when',None) != 'daily':
             for key,value in botslib.botsinfo():    #log info about environement, versions, etc
                 botsglobal.logger.info('%(key)s: "%(value)s".',{'key':key,'value':value})
 
@@ -96,6 +108,7 @@ def start():
     try:
         botsinit.connect()
     except Exception as msg:
+        print('Error connecting to database:' + msg)
         botsglobal.logger.exception('Could not connect to database. Database settings are in bots/config/settings.py. Error: "%(msg)s".',{'msg':msg})
         sys.exit(1)
     else:
@@ -162,7 +175,7 @@ def start():
             #************get list of routes to run*******************************
             if routestorun:         #routes ar given as command parameter
                 use_routestorun = routestorun[:]
-                botsglobal.logger.info('Run routes from command line: "%(routes)s".',{'routes':unicode(use_routestorun)})
+                botsglobal.logger.info('Run routes from command line: "%(routes)s".',{'routes':str(use_routestorun)})
             elif command == 'new':  #fetch all active routes from database unless 'not in default run' or not active.
                 use_routestorun = []
                 for row in botslib.query('''SELECT DISTINCT idroute
@@ -172,7 +185,7 @@ def start():
                                             ORDER BY idroute ''',
                                             {'active':True,'notindefaultrun':False}):
                     use_routestorun.append(row['idroute'])
-                botsglobal.logger.info('Run active routes from database that are in default run: "%(routes)s".',{'routes':unicode(use_routestorun)})
+                botsglobal.logger.info('Run active routes from database that are in default run: "%(routes)s".',{'routes':str(use_routestorun)})
             else:   #for command other than 'new': use all active routes.
                 use_routestorun = []
                 for row in botslib.query('''SELECT DISTINCT idroute
@@ -181,7 +194,7 @@ def start():
                                             ORDER BY idroute ''',
                                             {'active':True}):
                     use_routestorun.append(row['idroute'])
-                botsglobal.logger.info('Run all active routes from database: "%(routes)s".',{'routes':unicode(use_routestorun)})
+                botsglobal.logger.info('Run all active routes from database: "%(routes)s".',{'routes':str(use_routestorun)})
             #************run routes for this command******************************
             botslib.tryrunscript(userscript,scriptname,'pre' + command,routestorun=use_routestorun)
             errorinrun += router.rundispatcher(command,use_routestorun)
@@ -192,11 +205,12 @@ def start():
         try:    #in acceptance tests: run a user script. no good reporting of errors/results in post-test script. Reason: this is after automaticmaintence.
             botslib.tryrunscript(acceptance_userscript,acceptance_scriptname,'posttest',routestorun=use_routestorun)
         except Exception as msg:
-            print(unicode(msg))
+            print(str(msg))
 
         cleanup.cleanup(do_cleanup_parameter,userscript,scriptname)
     except Exception as msg:
-        botsglobal.logger.exception('Severe error in bots system:\n%(msg)s',{'msg':unicode(msg)})    #of course this 'should' not happen.
+        print('Severe error:' + msg)
+        botsglobal.logger.exception('Severe error in bots system:\n%(msg)s',{'msg':str(msg)})    #of course this 'should' not happen.
         sys.exit(1)
     else:
         if errorinrun:

@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 import sys
 import os
 import time
@@ -26,7 +26,7 @@ def server_error(request, template_name='500.html'):
     exc_info = traceback.format_exc(None)
     botsglobal.logger.info('Ran into server error: "%(error)s"',{'error':exc_info})
     temp = django.template.loader.get_template(template_name)  #You need to create a 500.html template.
-    return django.http.HttpResponseServerError(temp.render(django.template.Context({'exc_info':exc_info})))
+    return django.http.HttpResponseServerError(temp.render({'exc_info':exc_info}))
 
 
 def index(request,*kw,**kwargs):
@@ -393,10 +393,17 @@ def filer(request,*kw,**kwargs):
                     else:   #guess safe choice for charset. alt1: get charset by looking forward (until translation). alt2:try with utf-8, if error iso-8859-1
                         ta_object.content = botslib.readdata(ta_object.filename,charset='us-ascii',errors='ignore')
                     ta_object.has_file = True
-                    if ta_object.editype == 'x12':
-                        ta_object.content = viewlib.indent_x12(ta_object.content)
-                    elif ta_object.editype == 'edifact':
-                        ta_object.content = viewlib.indent_edifact(ta_object.content)
+                    try: # if this fails, just display as-is (eg. indent_xml only works with ascii!)
+                        if ta_object.editype == 'x12':
+                            ta_object.content = viewlib.indent_x12(ta_object.content)
+                        elif ta_object.editype == 'edifact':
+                            ta_object.content = viewlib.indent_edifact(ta_object.content)
+                        elif ta_object.editype in ('xml','xmlnocheck') or ta_object.content.startswith('<?xml '):
+                            ta_object.content = viewlib.indent_xml(ta_object.content)
+                        elif ta_object.editype in ('json','jsonnocheck') or (ta_object.content.startswith('{') and ta_object.content.endswith('}')):
+                            ta_object.content = viewlib.indent_json(ta_object.content)
+                    except:
+                        pass
                 else:
                     ta_object.has_file = False
                     ta_object.content = 'No file available for display.'
@@ -427,7 +434,7 @@ def srcfiler(request,*kw,**kwargs):
                 return django.shortcuts.render(request,'bots/srcfiler.html',{'src':src, 'html_source':html_source})
             else:
                 return django.shortcuts.render(request,'bots/srcfiler.html',{'error_content': 'File %s not allowed.' %src})
-        except:
+        except FileNotFoundError:
             return django.shortcuts.render(request,'bots/srcfiler.html',{'error_content': 'No such file.'})
 
 def logfiler(request,*kw,**kwargs):
@@ -443,7 +450,7 @@ def logfiler(request,*kw,**kwargs):
         try:
             with open(logf) as f:
                 logdata = f.read()
-        except:
+        except FileNotFoundError:
             logdata =  'No such file %s'%logf
 
         if 'action' in request.GET and request.GET['action'] == 'download':
@@ -453,8 +460,82 @@ def logfiler(request,*kw,**kwargs):
             return response
         else:
             logfiles = sorted(os.listdir(logpath), key=lambda s: s.lower())
-            return django.shortcuts.render(request,'bots/logfiler.html',{'log':log, 'logdata':logdata, 'logfiles':logfiles})
+            try:
+                return django.shortcuts.render(request,'bots/logfiler.html',{'log':log, 'logdata':logdata, 'logfiles':logfiles})
+            except:
+                return django.shortcuts.render(request,'bots/logfiler.html',{'log':log, 'logdata':'File cannot be displayed', 'logfiles':logfiles})
 
+def ccodecsv(request,*kw,**kwargs):
+    ''' handles download/upload of csv files from/to ccode tables.'''
+    import csv
+    if request.method == 'GET':
+        ccodeid = request.GET['ccodeid']
+        if request.GET['action'] == 'download':
+            response = django.http.HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename=%s.csv'%ccodeid
+            csvout = csv.writer(response,dialect='excel')
+            csvout.writerow(['ccodeid','leftcode','rightcode','attr1','attr2','attr3','attr4','attr5','attr6','attr7','attr8']) # headings
+            for row in models.ccode.objects.filter(ccodeid=ccodeid):
+                csvout.writerow([row.ccodeid,row.leftcode,row.rightcode,row.attr1,row.attr2,row.attr3,row.attr4,row.attr5,row.attr6,row.attr7,row.attr8])
+            return response
+        elif request.GET['action'] == 'upload':
+            form = forms.UploadFileForm()
+            return django.shortcuts.render(request,'bots/ccodecsv.html',{'ccodeid':ccodeid,'form':form})
+    elif 'submit' in request.POST:
+        form = forms.UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            #read the file and load into ccode table
+            try:
+                results={'ignored':0,'inserted':0,'updated':0,'unchanged':0}
+                with open(request.FILES['file'].temporary_file_path(), 'r',encoding='utf-8') as csvfile:
+                    csvin = csv.reader(csvfile,dialect='excel')
+                    for row in csvin:
+                        if row[0] == request.POST['ccodeid']:
+                            # every column must exist (ccode has empty strings, not nulls)
+                            for i in range(1,11):
+                                try:
+                                    row[i] = max(row[i],'')
+                                except IndexError:
+                                    row.append('')
+                            try:
+                                record = models.ccode.objects.get(ccodeid=row[0],leftcode=row[1])
+                                # Check for "unchanged" records
+                                # This is not strictly necessary, could just update all
+                                # but it provides useful feedback to the user
+                                if (record.rightcode == row[2] and record.attr1 == row[3] and record.attr2 == row[4]
+                                    and record.attr3 == row[5] and record.attr4 == row[6] and record.attr5 == row[7]
+                                    and record.attr6 == row[8] and record.attr7 == row[9] and record.attr8 == row[10]):
+                                    results['unchanged'] += 1
+                                else:
+                                    record.rightcode = row[2]
+                                    record.attr1 = row[3]
+                                    record.attr2 = row[4]
+                                    record.attr3 = row[5]
+                                    record.attr4 = row[6]
+                                    record.attr5 = row[7]
+                                    record.attr6 = row[8]
+                                    record.attr7 = row[9]
+                                    record.attr8 = row[10]
+                                    record.save()
+                                    results['updated'] += 1
+                            except django.core.exceptions.ObjectDoesNotExist:
+                                record = models.ccode(ccodeid=models.ccodetrigger.objects.get(ccodeid=row[0]),leftcode = row[1],
+                                    rightcode = row[2], attr1 = row[3], attr2 = row[4], attr3 = row[5], attr4 = row[6],
+                                    attr5 = row[7], attr6 = row[8], attr7 = row[9], attr8 = row[10])
+                                record.save()
+                                results['inserted'] += 1
+                        else:
+                            results['ignored'] += 1 # ccodeid not equal
+            except Exception as msg:
+                notification = u'Error uploading file: "%s".'%str(msg)
+                botsglobal.logger.error(notification)
+                messages.add_message(request, messages.INFO, notification)
+            else:
+                # show a results view with row counts
+                return django.shortcuts.render(request,'bots/ccodecsv.html', {'ccodeid':request.POST['ccodeid'],'results':results})
+        else:
+            messages.add_message(request, messages.INFO, _(u'No file read.'))
+    return django.shortcuts.redirect('admin/bots/ccodetrigger/')
 
 def plugin(request,*kw,**kwargs):
     if request.method == 'GET':
@@ -471,7 +552,7 @@ def plugin(request,*kw,**kwargs):
                     if pluglib.read_plugin(request.FILES['file'].temporary_file_path()):
                         messages.add_message(request, messages.INFO, 'Overwritten existing files.')
                 except Exception as msg:
-                    notification = 'Error reading plugin: "%s".'%unicode(msg)
+                    notification = 'Error reading plugin: "%s".'%str(msg)
                     botsglobal.logger.error(notification)
                     messages.add_message(request, messages.INFO, notification)
                 else:
@@ -495,7 +576,7 @@ def plugin_index(request,*kw,**kwargs):
             try:
                 pluglib.read_index('index')
             except Exception as msg:
-                notification = 'Error reading configuration index file: "%s".'%unicode(msg)
+                notification = 'Error reading configuration index file: "%s".'%str(msg)
                 botsglobal.logger.error(notification)
                 messages.add_message(request, messages.INFO, notification)
             else:
@@ -512,7 +593,7 @@ def plugout_index(request,*kw,**kwargs):
             dummy_for_cleaned_data = {'databaseconfiguration':True,'umlists':botsglobal.ini.getboolean('settings','codelists_in_plugin',True),'databasetransactions':False}
             pluglib.make_index(dummy_for_cleaned_data,filename)
         except Exception as msg:
-            notification = 'Error writing configuration index file: "%s".'%unicode(msg)
+            notification = 'Error writing configuration index file: "%s".'%str(msg)
             botsglobal.logger.error(notification)
             messages.add_message(request, messages.INFO, notification)
         else:
@@ -540,10 +621,11 @@ def plugout_backup_core(request,*kw,**kwargs):
                                     'logfiles':False,
                                     'config':False,
                                     'database':False,
+                                    'dbfilter':False
                                     }
         pluglib.make_plugin(dummy_for_cleaned_data,filename)
     except Exception as msg:
-        notification = 'Error writing backup plugin: "%s".'%unicode(msg)
+        notification = 'Error writing backup plugin: "%s".'%str(msg)
         botsglobal.logger.error(notification)
         messages.add_message(request, messages.INFO, notification)
     else:
@@ -564,13 +646,16 @@ def plugout(request,*kw,**kwargs):
                 try:
                     pluglib.make_plugin(form.cleaned_data,filename)
                 except botslib.PluginError as msg:
-                    botsglobal.logger.error(unicode(msg))
-                    messages.add_message(request,messages.INFO,unicode(msg))
+                    botsglobal.logger.error(str(msg))
+                    messages.add_message(request,messages.INFO,str(msg))
                 else:
                     botsglobal.logger.info('Plugin "%(file)s" created successful.',{'file':filename})
                     response = django.http.HttpResponse(open(filename, 'rb').read(), content_type='application/zip')
                     # response['Content-Length'] = os.path.getsize(filename)
-                    response['Content-Disposition'] = 'attachment; filename=' + 'plugin' + time.strftime('_%Y%m%d') + '.zip'
+                    if 'dbfilter' in form.cleaned_data:
+                        response['Content-Disposition'] = 'attachment; filename=' + 'plugin_' + form.cleaned_data['dbfilter'] + time.strftime('_%Y%m%d') + '.zip'
+                    else:
+                        response['Content-Disposition'] = 'attachment; filename=' + 'plugin' + time.strftime('_%Y%m%d') + '.zip'
                     return response
     return django.shortcuts.redirect('/home')
 
@@ -700,12 +785,12 @@ def runengine(request,*kw,**kwargs):
 
         #either bots-engine is run directly or via jobqueue-server:
         if botsglobal.ini.getboolean('jobqueue','enabled',False):   #run bots-engine via jobqueue-server; reports back if job is queued
-            import job2queue
+            from . import job2queue
             terug = job2queue.send_job_to_jobqueue(lijst)
             messages.add_message(request, messages.INFO, job2queue.JOBQUEUEMESSAGE2TXT[terug])
             botsglobal.logger.info(job2queue.JOBQUEUEMESSAGE2TXT[terug])
         else:                                                       #run bots-engine direct.; reports back if bots-engien is started succesful. **not reported: problems with running.
-            botsglobal.logger.info('Run bots-engine with parameters: "%(parameters)s"',{'parameters':unicode(lijst)})
+            botsglobal.logger.info('Run bots-engine with parameters: "%(parameters)s"',{'parameters':str(lijst)})
             #first check if another instance of bots-engine is running/if port is free
             try:
                 engine_socket = botslib.check_if_other_engine_is_running()
@@ -740,13 +825,16 @@ def sendtestmailmanagers(request,*kw,**kwargs):
 
     from django.core.mail import mail_managers
     try:
-        mail_managers('testsubject', 'test content of report')
-    except:
+        content = ['Email server info from settings.py',
+                   '',
+                   'Host: %s' %botsglobal.settings.EMAIL_HOST,
+                   'Port: %s' %botsglobal.settings.EMAIL_PORT,
+                   'TLS:  %s' %botsglobal.settings.EMAIL_USE_TLS]
+        mail_managers(_(u'Test mail from Bots'), '\n'.join(content))
+        notification = _(u'Sending test mail succeeded.')
+    except Exception as notification:
         txt = botslib.txtexc()
-        messages.add_message(request, messages.INFO, 'Sending test mail failed.')
-        botsglobal.logger.info('Sending test mail failed, error:\n%(txt)s', {'txt':txt})
-        return django.shortcuts.redirect('/home')
-    notification = 'Sending test mail succeeded.'
+        botsglobal.logger.info(_(u'Sending test mail failed, error:\n%(txt)s'), {'txt':txt})
     messages.add_message(request, messages.INFO, notification)
     botsglobal.logger.info(notification)
     return django.shortcuts.redirect('/home')

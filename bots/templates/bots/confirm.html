@@ -33,9 +33,9 @@
         </thead>
         <tbody>
         {% for row in queryset.object_list %}
-            <tr class="{% cycle 'row1' 'row2">
+            <tr class="{% cycle 'row1' 'row2' %}">
                 <td>
-                    <div class="dropdown"><img class="action" src="/media/images/star.png" />
+                    <div class="dropdown"><img class="action" src="/media/images/icon-star-blue.svg" />
                         <ul>
                             <li><button class="botsheader" onclick="document.location.href='/detail/?outidta={{row.idta}}'; return false;">View detail</button></li>
                             <li><button class="botsheader" type="submit" name="confirm" value="{{row.idta}}" >Confirm manual</button></li>

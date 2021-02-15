@@ -1,15 +1,16 @@
 {% if queryset.has_previous %}
-    <input type="submit" name="first" value="&lt;&lt;" />
-    <input type="submit" name="previous" value="&lt;" />
+    <input type="submit" name="first" value="&#x2759;&#x25c0;" />
+    <input type="submit" name="previous" value="&#x25c0;" />
 {% else %}
-    <input disabled type="submit" name="first" value="&lt;&lt;" />
-    <input disabled type="submit" name="previous" value="&lt;" />
+    <input disabled type="submit" name="first" value="&#x2759;&#x25c0;" />
+    <input disabled type="submit" name="previous" value="&#x25c0;" />
 {% endif %}
-(Page{{ queryset.number }}of{{ queryset.paginator.num_pages }}; {{ queryset.paginator.count }}items)
 {% if queryset.has_next %}
-    <input type="submit" name="next" value="&gt;" />
-    <input type="submit" name="last" value="&gt;&gt;" />
+    <input type="submit" name="next" value="&#x25B6;" />
+    <input type="submit" name="last" value="&#x25B6;&#x2759;" />
 {% else %}
-    <input disabled type="submit" name="next" value="&gt;" />
-    <input disabled type="submit" name="last" value="&gt;&gt;" />
+    <input disabled type="submit" name="next" value="&#x25B6;" />
+    <input disabled type="submit" name="last" value="&#x25B6;&#x2759;" />
 {% endif %}
+&nbsp;&nbsp;&nbsp;&nbsp;
+Page {{ queryset.number }} of {{ queryset.paginator.num_pages }}, {{ queryset.paginator.count }} items.

@@ -119,7 +119,7 @@ class OldTransaction(_Transaction):
 class NewTransaction(_Transaction):
     ''' Generate new transaction. '''
     def __init__(self,**ta_info):
-        updatedict = dict((key,value) for key,value in ta_info.items() if key in self.filterlist)     #filter ta_info
+        updatedict = dict((key,value) for key,value in list(ta_info.items()) if key in self.filterlist)     #filter ta_info
         updatedict['script'] = self.processlist[-1]
         namesstring = ','.join(key for key in updatedict)
         varsstring = ','.join('%('+key+')s' for key in updatedict)
@@ -178,7 +178,7 @@ def updateinfocore(change,where,wherestring=''):
     '''
     wherestring = ' WHERE idta > %(rootidta)s AND ' + wherestring
     #change-dict: discard empty values. Change keys: this is needed because same keys can be in where-dict
-    change2 = [(key,value) for key,value in change.items() if value]
+    change2 = [(key,value) for key,value in list(change.items()) if value]
     if not change2:
         return
     changestring = ','.join(key+'=%(change_'+key+')s' for key,value in change2)
@@ -240,7 +240,6 @@ def unique_runcounter(domain,updatewith=None):
     ''' as unique, but per run of bots-engine.
     '''
     domain += 'bots_1_8_4_9_6'  #avoid using/mixing other values in botsglobal
-    domain = domain.encode('unicode-escape')
     nummer = getattr(botsglobal,domain,0)
     if updatewith is None:
         nummer += 1
@@ -361,7 +360,7 @@ def safe_unicode(value):    #python2
     '''
     #~ print('safe_unicode00')
     try:
-        if isinstance(value, unicode):      #is already unicode, just return
+        if isinstance(value, str):      #is already unicode, just return
             return value
         elif isinstance(value, str):        #string/bytecode, encoding unknown.
             for charset in ['utf_8','latin_1']:
@@ -373,11 +372,11 @@ def safe_unicode(value):    #python2
             return value.decode('utf_8', 'ignore')  #decode as if it is utf-8, ignore errors.
         else:
             #~ print('safe_unicode11',type(value))
-            return unicode(value)
+            return str(value)
     except Exception as msg:
         print('safe_unicode22',msg)
         try:
-            return unicode(repr(value))
+            return str(repr(value))
         except:
             return 'Error while displaying error'
 
@@ -401,7 +400,8 @@ def botsbaseimport(modulename):
     ''' Do a dynamic import.
         Errors/exceptions are handled in calling functions.
     '''
-    return importlib.import_module(modulename.encode(sys.getfilesystemencoding()),'bots')
+    #PY3 return importlib.import_module(modulename.encode(sys.getfilesystemencoding()),'bots')
+    return importlib.import_module(modulename,'bots')
 
 def botsimport(*args):
     ''' import modules from usersys.
@@ -418,10 +418,10 @@ def botsimport(*args):
     except ImportError as msg:
         botsglobal.not_import.add(modulepath)
         botsglobal.logger.debug('No import of module "%(modulefile)s": %(txt)s.',{'modulefile':modulefile,'txt':msg})
-        raise BotsImportError('No import of module "%(modulefile)s": %(txt)s',{'modulefile':modulefile,'txt':msg})
+        raise BotsImportError('No import of module "%(modulefile)s": %(txt)s',{'modulefile':modulefile,'txt':msg}) from None
     except Exception as msg:
         botsglobal.logger.debug('Error in import of module "%(modulefile)s": %(txt)s.',{'modulefile':modulefile,'txt':msg})
-        raise ScriptImportError('Error in import of module "%(modulefile)s":\n%(txt)s',{'modulefile':modulefile,'txt':msg})
+        raise ScriptImportError('Error in import of module "%(modulefile)s":\n%(txt)s',{'modulefile':modulefile,'txt':msg}) from None
     else:
         botsglobal.logger.debug('Imported "%(modulefile)s".',{'modulefile':modulefile})
         return module,modulefile
@@ -663,7 +663,7 @@ def trace_origin(ta,where=None):
             donelijst.append(idta)
             taparent = OldTransaction(idta=idta)
             taparent.synall()
-            for key,value in where.items():
+            for key,value in list(where.items()):
                 if getattr(taparent,key) != value:
                     break
             else:   #all where-criteria are true;
@@ -735,12 +735,19 @@ def lookup_translation(frommessagetype,fromeditype,alt,frompartner,topartner):
         return None,None,None
 
 def botsinfo():
+    try: # cherrypy is optional, might be using apache instead
+        import cherrypy
+        cherrypy_version = cherrypy.__version__
+    except:
+        cherrypy_version = None
+
     return [
             ('served at port',botsglobal.ini.getint('webserver','port',8080)),
             ('platform',platform.platform()),
             ('machine',platform.machine()),
             ('python version',platform.python_version()),
-            ('django version',django.VERSION),
+            ('django version',django.__version__),
+            ('cherrypy version',cherrypy_version),
             ('bots version',botsglobal.version),
             ('bots installation path',botsglobal.ini.get('directories','botspath')),
             ('config path',botsglobal.ini.get('directories','config')),
@@ -772,7 +779,7 @@ def settimeout(milliseconds):
     socket.setdefaulttimeout(milliseconds)    #set a time-out for TCP-IP connections
 
 def updateunlessset(updatedict,fromdict):
-    updatedict.update((key,value) for key, value in fromdict.items() if key not in updatedict or not updatedict[key]) #!!TODO when is this valid? Note: prevents setting charset from grammar
+    updatedict.update((key,value) for key, value in list(fromdict.items()) if key not in updatedict or not updatedict[key]) #!!TODO when is this valid? Note: prevents setting charset from grammar
 
 def rreplace(org,old,new='',count=1):
     ''' string handling:
@@ -825,7 +832,7 @@ class Uri(object):
         scheme   = self._uri['scheme'] + ':' if self._uri['scheme'] else ''
         password = ':' + self._uri['password'] if self._uri['password'] else ''
         userinfo = self._uri['username'] + password + '@' if self._uri['username'] else ''
-        port     = ':' + unicode(self._uri['port']) if self._uri['port'] else ''
+        port     = ':' + str(self._uri['port']) if self._uri['port'] else ''
         fullhost = self._uri['hostname'] + port if self._uri['hostname'] else ''
         authority = '//' + userinfo + fullhost if fullhost else ''
         if self._uri['path'] or self._uri['filename']:
@@ -853,8 +860,8 @@ class BotsError(Exception):
                 xxx = {}
         else:
             xxx = kwargs
-        self.xxx = collections.defaultdict(unicode)
-        for key,value in xxx.items():
+        self.xxx = collections.defaultdict(str)
+        for key,value in list(xxx.items()):
             self.xxx[safe_unicode(key)] = safe_unicode(value)
     def __unicode__(self):
         try:

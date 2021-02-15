@@ -135,8 +135,8 @@ def read_index2database(orgpluglist):
     for plug in orgpluglist:
         if not isinstance(plug,dict):
             raise botslib.PluginError('Plugins should be list of dicts. Nothing is written.')
-        for key in plug.keys():
-            if not isinstance(key,basestring):
+        for key in list(plug.keys()):
+            if not isinstance(key,str):
                 raise botslib.PluginError('Key of dict is not a string: "%(plug)s". Nothing is written.',{'plug':plug})
         if 'plugintype' not in plug:
             raise botslib.PluginError('"Plugintype" missing in: "%(plug)s". Nothing is written.',{'plug':plug})
@@ -198,7 +198,7 @@ def read_index2database(orgpluglist):
         #remember the plugintype
         plugintype = plug['plugintype']
 
-        table = django.db.models.get_model('bots',plugintype)
+        table = django.apps.apps.get_model('bots',plugintype)
 
         #delete fields not in model for compatibility; note that 'plugintype' is also removed.
         for key in list(plug.keys()):
@@ -227,7 +227,7 @@ def read_index2database(orgpluglist):
 
         #get real column names for fields in plug
         for fieldname in list(plug.keys()):
-            fieldobject = table._meta.get_field_by_name(fieldname)[0]
+            fieldobject = table._meta.get_field(fieldname)
             try:
                 if fieldobject.column != fieldname:     #if name in plug is not the real field name (in database)
                     plug[fieldobject.column] = plug[fieldname]  #add new key in plug
@@ -236,7 +236,7 @@ def read_index2database(orgpluglist):
                 raise botslib.PluginError('No field column for: "%(fieldname)s".',{'fieldname':fieldname})
         #get real column names for fields in sleutel; basically the same loop but now for sleutel
         for fieldname in list(sleutel.keys()):
-            fieldobject = table._meta.get_field_by_name(fieldname)[0]
+            fieldobject = table._meta.get_field(fieldname)
             try:
                 if fieldobject.column != fieldname:
                     sleutel[fieldobject.column] = sleutel[fieldname]
@@ -268,7 +268,7 @@ def read_index2database(orgpluglist):
             dbobject = table(**sleutel)         #create db-object
             if plugintype == 'partner':        #for partners, first the partner needs to be saved before groups can be made
                 dbobject.save()
-        for key,value in plug.items():      #update object with attributes from plugin
+        for key,value in list(plug.items()):      #update object with attributes from plugin
             setattr(dbobject,key,value)
         dbobject.save()                     #and save the updated object.
         botsglobal.logger.info('        Write to database is OK.')
@@ -291,14 +291,18 @@ def make_plugin(cleaned_data,filename):
     pluginzipfilehandler = zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED)
 
     plugs = all_database2plug(cleaned_data)
-    plugsasstring = make_plugs2string(plugs)
+    if 'dbfilter' in cleaned_data:
+        plugsasstring = make_plugs2string(plugs,cleaned_data['dbfilter'])
+    else:
+        plugsasstring = make_plugs2string(plugs)
     pluginzipfilehandler.writestr('botsindex.py',plugsasstring.encode('utf-8'))      #write index file to pluginfile
     botsglobal.logger.debug('    Write in index:\n %(index)s',{'index':plugsasstring})
 
     files4plugin = plugout_files(cleaned_data)
     for dirname, defaultdirname in files4plugin:
-        pluginzipfilehandler.write(dirname,defaultdirname)
-        botsglobal.logger.debug('    Write file "%(file)s".',{'file':defaultdirname})
+        if 'dbfilter' not in cleaned_data or cleaned_data['dbfilter'] in dirname:
+            pluginzipfilehandler.write(dirname,defaultdirname)
+            botsglobal.logger.debug(u'    Write file "%(file)s".',{'file':defaultdirname})
 
     pluginzipfilehandler.close()
 
@@ -332,7 +336,8 @@ def database2plug(db_table):
     plugs = serializers.serialize('python', db_table.objects.all())
     if plugs:
         app,tablename = plugs[0]['model'].split('.',1)
-        table = django.db.models.get_model(app,tablename)
+        #table = django.db.models.get_model(app,tablename)
+        table = django.apps.apps.get_model(app,tablename) # Django 1.9 fix
         pk = table._meta.pk.name
         #adapt plugs
         for plug in plugs:
@@ -347,23 +352,33 @@ def database2plug(db_table):
                     plug['fields']['testpath'] = plug['fields']['testpath'].replace(botsglobal.ini.get('directories','botssys_org'),'botssys',1)
     return plugs
 
-def make_plugs2string(plugs):
+def make_plugs2string(plugs,dbfilter=None):
     ''' return plugs (serialized objects) as unicode strings.
     '''
-    lijst = ['# -*- coding: utf-8 -*-\n','import datetime',"version = '%s'" % (botsglobal.version),'plugins = [']
-    lijst.extend(plug2string(plug['fields']) for plug in plugs)
-    lijst.append(']\n')
+    lijst = [u'# -*- coding: utf-8 -*-',u'import datetime',"version = '%s'" % (botsglobal.version),'plugins = [']
+    if dbfilter:
+        for plug in plugs:
+            pstring = plug2string(plug['fields'])
+            if dbfilter in pstring:
+                lijst.append(pstring)
+    else:
+        lijst.extend([plug2string(plug['fields']) for plug in plugs])
+    lijst.append(u']\n')
     return '\n'.join(lijst)
 
 def plug2string(plugdict):
     ''' like repr() for a dict, but:
         - starts with 'plugintype'
+        - next is the "ID" or key fields for the record, for readability of botsindex
         - other entries are sorted; this because of predictability
         - produce unicode by using str().decode(unicode_escape): bytes->unicode; converts escaped unicode-chrs to correct unicode. repr produces these.
         str().decode(): bytes->unicode
         str().encode(): unicode->bytes
     '''
     terug = '{' + repr('plugintype') + ': ' + repr(plugdict.pop('plugintype'))
+    for key in ('idroute','idchannel','idpartner','ccodeid','leftcode','rightcode'): # put these "ID" fields first
+        if key in plugdict:
+            terug += ', ' + repr(key) + ': ' + repr(plugdict.pop(key))
     for key in sorted(plugdict.keys()):
         terug += ', ' + repr(key) + ': ' + repr(plugdict[key])
     terug += '},'
@@ -373,12 +388,12 @@ def plugout_files(cleaned_data):
     ''' gather list of files for the plugin that is generated.
     '''
     files2return = []
-    usersys = unicode(botsglobal.ini.get('directories','usersysabs'))
-    botssys = unicode(botsglobal.ini.get('directories','botssys'))
+    usersys = str(botsglobal.ini.get('directories','usersysabs'))
+    botssys = str(botsglobal.ini.get('directories','botssys'))
     if cleaned_data['fileconfiguration']:       #gather from usersys
         files2return.extend(plugout_files_bydir(usersys,'usersys'))
         if not cleaned_data['charset']:     #if edifact charsets are not needed: remove them (are included in default bots installation).
-            charsetdirs = plugout_files_bydir(os.path.join(usersys,'charsets'),'usersys/charsets')
+            charsetdirs = plugout_files_bydir(os.path.join(usersys,'charsets'),os.path.join('usersys','charsets'))
             for charset in charsetdirs:
                 try:
                     index = files2return.index(charset)

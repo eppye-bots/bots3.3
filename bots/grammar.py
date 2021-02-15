@@ -155,8 +155,8 @@ class Grammar(object):
                 raise botslib.GrammarError('Grammar "%(grammar)s": recorddefs has error that is already reported in this run.',{'grammar':self.grammarname})
             return                                  #already did checks - result OK! skip checks
         #not checked (in this run): so check the recorddefs
-        for recordid ,fields in self.recorddefs.items():
-            if not isinstance(recordid,basestring):
+        for recordid ,fields in list(self.recorddefs.items()):
+            if not isinstance(recordid,str):
                 raise botslib.GrammarError('Grammar "%(grammar)s", in recorddefs, record "%(record)s": is not a string.',
                                                 {'grammar':self.grammarname,'record':recordid})
             if not recordid:
@@ -211,16 +211,16 @@ class Grammar(object):
         else:
             raise botslib.GrammarError('Grammar "%(grammar)s", in recorddefs, record "%(record)s", field "%(field)s": list has invalid number of arguments.',
                                             {'grammar':self.grammarname,'record':recordid,'field':field[ID]})
-        if not isinstance(field[ID],basestring) or not field[ID]:
+        if not isinstance(field[ID],str) or not field[ID]:
             raise botslib.GrammarError('Grammar "%(grammar)s", in recorddefs, record "%(record)s", field "%(field)s": fieldID has to be a string.',
                                             {'grammar':self.grammarname,'record':recordid,'field':field[ID]})
-        if isinstance(field[MANDATORY],basestring):
+        if isinstance(field[MANDATORY],str):
             if field[MANDATORY] not in 'MC':
                 raise botslib.GrammarError('Grammar "%(grammar)s", in recorddefs, record "%(record)s", field "%(field)s": mandatory/conditional must be "M" or "C".',
                                                 {'grammar':self.grammarname,'record':recordid,'field':field[ID]})
             field[MANDATORY] = 0 if field[MANDATORY]=='C' else 1
         elif isinstance(field[MANDATORY],tuple):
-            if not isinstance(field[MANDATORY][0],basestring):
+            if not isinstance(field[MANDATORY][0],str):
                 raise botslib.GrammarError('Grammar "%(grammar)s", in recorddefs, record "%(record)s", field "%(field)s": mandatory/conditional must be "M" or "C".',
                                                 {'grammar':self.grammarname,'record':recordid,'field':field[ID]})
             if field[MANDATORY][0] not in 'MC':
@@ -261,7 +261,7 @@ class Grammar(object):
                 raise botslib.GrammarError('Grammar "%(grammar)s", in recorddefs, record "%(record)s", field "%(field)s": minlength "%(len)s" has to be at least 0.',
                                                 {'grammar':self.grammarname,'record':recordid,'field':field[ID],'len':field[LENGTH]})
             #format
-            if not isinstance(field[FORMAT],basestring):
+            if not isinstance(field[FORMAT],str):
                 raise botslib.GrammarError('Grammar "%(grammar)s", in recorddefs, record "%(record)s", field "%(field)s": format "%(format)s" has to be a string.',
                                                 {'grammar':self.grammarname,'record':recordid,'field':field[ID],'format':field[FORMAT]})
             self._manipulatefieldformat(field,recordid)
@@ -343,7 +343,7 @@ class Grammar(object):
             if ID not in i:
                 raise botslib.GrammarError('Grammar "%(grammar)s", in structure, at "%(mpath)s": record without ID: "%(record)s".',
                                             {'grammar':self.grammarname,'mpath':mpath,'record':i})
-            if not isinstance(i[ID],basestring):
+            if not isinstance(i[ID],str):
                 raise botslib.GrammarError('Grammar "%(grammar)s", in structure, at "%(mpath)s": recordid of record is not a string: "%(record)s".',
                                             {'grammar':self.grammarname,'mpath':mpath,'record':i})
             if not i[ID]:
@@ -366,7 +366,7 @@ class Grammar(object):
                                             {'grammar':self.grammarname,'mpath':mpath,'record':i})
             if i[MIN] > i[MAX]:
                 raise botslib.GrammarError('Grammar "%(grammar)s", in structure, at "%(mpath)s": record where MIN > MAX: "%(record)s".',
-                                            {'grammar':self.grammarname,'mpath':mpath,'record':unicode(i)[:100]})
+                                            {'grammar':self.grammarname,'mpath':mpath,'record':str(i)[:100]})
             i[MPATH] = mpath + [i[ID]]
             if LEVEL in i:
                 self._checkstructure(i[LEVEL],i[MPATH])
@@ -410,7 +410,7 @@ class Grammar(object):
         collision = {}
         for i in structure:
             if i[ID] in collision:
-                i[BOTSIDNR] = unicode(collision[i[ID]] + 1)
+                i[BOTSIDNR] = str(collision[i[ID]] + 1)
                 collision[i[ID]] = collision[i[ID]] + 1
             else:
                 i[BOTSIDNR] = '1'
@@ -486,7 +486,7 @@ class Grammar(object):
             field[BFORMAT] = self.formatconvert[field[FORMAT]]
         except KeyError:
             raise botslib.GrammarError('Grammar "%(grammar)s", record "%(record)s", field "%(field)s": format "%(format)s" has to be one of "%(keys)s".',
-                                        {'grammar':self.grammarname,'record':recordid,'field':field[ID],'format':field[FORMAT],'keys':self.formatconvert.keys()})
+                                        {'grammar':self.grammarname,'record':recordid,'field':field[ID],'format':field[FORMAT],'keys':list(self.formatconvert.keys())})
 
 #grammar subclasses. contain the defaultsyntax
 class test(Grammar):

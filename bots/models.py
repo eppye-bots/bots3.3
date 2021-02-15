@@ -1,5 +1,5 @@
 import sys
-from urllib import quote as urllib_quote
+import urllib.parse
 import os
 import re
 from django.db import models
@@ -145,7 +145,7 @@ class StripCharField(models.CharField):
     def get_prep_value(self, value,*args,**kwargs):
         ''' Convert Python objects (value) to query values (returned)
         '''
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             return value.strip()
         else:
             return value
@@ -166,19 +166,20 @@ def script_link1(script,linktext):
     ''' if script exists return a plain text name as link; else return "no" icon, plain text name
         used in translate (all scripts should exist, missing script is an error).
     '''
+    script = script.replace('.',os.sep,script.count('.')-1) # allow mapping script subdirs
     if os.path.exists(script):
-        return '<a href="/srcfiler/?src=%s" target="_blank">%s</a>'%(urllib_quote(script.encode("utf-8")),linktext)
+        return '<a href="/srcfiler/?src=%s" target="_blank">%s</a>'%(urllib.parse.quote(script),linktext)
     else:
-        return '<img src="/media/admin/img/icon-no.gif"></img> %s'%linktext
+        return '<img src="/media/admin/img/icon-no.svg"></img> %s'%linktext
 
 def script_link2(script):
     ''' if script exists return "yes" icon + view link; else return "no" icon
         used in routes, channels (scripts are optional)
     '''
     if os.path.exists(script):
-        return '<a class="nowrap" href="/srcfiler/?src=%s" target="_blank"><img src="/media/admin/img/icon-yes.gif"></img> view</a>'%urllib_quote(script.encode("utf-8"))
+        return '<a class="nowrap" href="/srcfiler/?src=%s" target="_blank"><img src="/media/admin/img/icon-yes.svg"></img> view</a>'%urllib.parse.quote(script)
     else:
-        return '<img src="/media/admin/img/icon-no.gif"></img>'
+        return '<img src="/media/admin/img/icon-no.svg"></img>'
 
 
 class MultipleEmailField(models.CharField):
@@ -206,7 +207,7 @@ class confirmrule(models.Model):
     rsrv1 = StripCharField(max_length=35,blank=True,null=True)  #added 20100501
     rsrv2 = models.IntegerField(null=True)                        #added 20100501
     def __str__(self):
-        return unicode(self.confirmtype) + ' ' + unicode(self.ruletype)
+        return str(self.confirmtype) + ' ' + str(self.ruletype)
     class Meta:
         db_table = 'confirmrule'
         verbose_name = 'confirm rule'
@@ -216,7 +217,22 @@ class ccodetrigger(models.Model):
     ccodeid = StripCharField(primary_key=True,max_length=35,verbose_name='Type of user code')
     ccodeid_desc = models.TextField(blank=True,null=True,verbose_name='Description')
     def __str__(self):
-        return unicode(self.ccodeid)
+        return str(self.ccodeid)
+
+    def download(self):
+        return '<center><input type="button" value="&#x25BC;" class="default" onclick="document.location.href=\'/ccodecsv/?action=download&ccodeid=%s\'; return false;"></center>'%self.ccodeid
+    download.allow_tags = True
+    download.short_description = 'Download'
+
+    def upload(self):
+        return '<center><input type="button" value="&#x25B2;" class="default" onclick="document.location.href=\'/ccodecsv/?action=upload&ccodeid=%s\'; return false;"></center>'%self.ccodeid
+    upload.allow_tags = True
+    upload.short_description = 'Upload'
+
+    def rowcount(self):
+        return ccode.objects.filter(ccodeid=self.ccodeid).count()
+    rowcount.short_description = 'Row count'
+
     class Meta:
         db_table = 'ccodetrigger'
         verbose_name = 'user code type'
@@ -236,7 +252,7 @@ class ccode(models.Model):
     attr7 = StripCharField(max_length=35,blank=True)
     attr8 = StripCharField(max_length=35,blank=True)
     def __str__(self):
-        return unicode(self.ccodeid) + ' ' + unicode(self.leftcode) + ' ' + unicode(self.rightcode)
+        return str(self.ccodeid) + ' ' + str(self.leftcode) + ' ' + str(self.rightcode)
     class Meta:
         db_table = 'ccode'
         verbose_name = 'user code'
@@ -250,8 +266,8 @@ class channel(models.Model):
     charset = StripCharField(max_length=35,default='us-ascii')     #20120828: not used anymore; in database is NOT NULL
     host = StripCharField(max_length=256,blank=True)
     port = models.PositiveIntegerField(default=0,blank=True,null=True)
-    username = StripCharField(max_length=35,blank=True)
-    secret = StripCharField(max_length=35,blank=True,verbose_name='password')
+    username = StripCharField(max_length=256,blank=True)
+    secret = StripCharField(max_length=256,blank=True,verbose_name='password')
     starttls = models.BooleanField(default=False,verbose_name='No check from-address',help_text='Do not check if incoming "from" email addresses is known.')       #20091027: used as 'no check on "from:" email address'
     apop = models.BooleanField(default=False,verbose_name='No check to-address',help_text='Do not check if incoming "to" email addresses is known.')       #20110104: used as 'no check on "to:" email address'
     remove = models.BooleanField(default=False,help_text='Delete incoming edi files after reading.<br>Use in production else files are read again and again.')
@@ -321,7 +337,7 @@ class partner(models.Model):
         ordering = ['idpartner']
         db_table = 'partner'
     def __str__(self):
-        return unicode(self.idpartner) + ' (' + unicode(self.name) + ')'
+        return str(self.idpartner) + ' (' + str(self.name) + ')'
     def save(self, *args, **kwargs):
         if isinstance(self,partnergroep):
             self.isgroup = True
@@ -351,7 +367,7 @@ class chanpar(models.Model):
         verbose_name = 'email address per channel'
         verbose_name_plural = 'email address per channel'
     def __str__(self):
-        return unicode(self.idpartner) + ' ' + unicode(self.idchannel) + ' ' + unicode(self.mail)
+        return str(self.idpartner) + ' ' + str(self.idchannel) + ' ' + str(self.mail)
 @python_2_unicode_compatible
 class translate(models.Model):
     #~ id = models.IntegerField(primary_key=True)
@@ -394,7 +410,7 @@ class translate(models.Model):
         verbose_name = 'translation rule'
         ordering = ['fromeditype','frommessagetype','frompartner','topartner','alt']
     def __str__(self):
-        return unicode(self.fromeditype) + ' ' + unicode(self.frommessagetype) + ' ' + unicode(self.alt) + ' ' + unicode(self.frompartner) + ' ' + unicode(self.topartner)
+        return str(self.fromeditype) + ' ' + str(self.frommessagetype) + ' ' + str(self.alt) + ' ' + str(self.frompartner) + ' ' + str(self.topartner)
 
 @python_2_unicode_compatible
 class routes(models.Model):
@@ -439,16 +455,16 @@ class routes(models.Model):
         unique_together = (('idroute','seq'),)
         ordering = ['idroute','seq']
     def __str__(self):
-        return unicode(self.idroute) + ' ' + unicode(self.seq)
+        return str(self.idroute) + ' ' + str(self.seq)
     def translt(self):
         if self.translateind == 0:
-            return '<img alt="%s" src="/media/admin/img/icon-no.gif"></img>'%(self.get_translateind_display())
+            return '<img alt="%s" src="/media/images/icon-no.svg"></img>'%(self.get_translateind_display())
         elif self.translateind == 1:
-            return '<img alt="%s" src="/media/admin/img/icon-yes.gif"></img>'%(self.get_translateind_display())
+            return '<img alt="%s" src="/media/images/icon-yes.svg"></img>'%(self.get_translateind_display())
         elif self.translateind == 2:
-            return '<img alt="%s" src="/media/images/icon-pass.gif"></img>'%(self.get_translateind_display())
+            return '<img alt="%s" src="/media/images/icon-arrow-blue.svg"></img>'%(self.get_translateind_display())
         elif self.translateind == 3:
-            return '<img alt="%s" src="/media/images/icon-pass_parse.gif"></img>'%(self.get_translateind_display())
+            return '<img alt="%s" src="/media/images/icon-arrow-yellow.svg"></img>'%(self.get_translateind_display())
     translt.allow_tags = True
     translt.admin_order_field = 'translateind'
 

@@ -1,9 +1,9 @@
 ''' Bots configuration for django's admin site.'''
 from django import forms
-try:
-    from django.forms import util as django_forms_util
+try: # new first to avoid django 1.8 deprecation warning
+    from django.forms import utils as django_forms_util
 except:
-    from django.forms import utils as django_forms_util     #django1.7
+    from django.forms import util as django_forms_util
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
@@ -11,11 +11,14 @@ from django.contrib.auth.models import User
 from . import models
 from . import botsglobal
 
+from django.utils.html import format_html
+from django.urls import reverse
 
 class BotsAdmin(admin.ModelAdmin):
     ''' all classes in this module are sub-classed from BotsAdmin.
     '''
     list_per_page = botsglobal.ini.getint('settings','adminlimit',botsglobal.ini.getint('settings','limit',30))
+    save_on_top = botsglobal.ini.getboolean('settings','save_on_top',False)
     save_as = True
     def activate(self, request, queryset):
         ''' handles the admin 'activate' action.'''
@@ -23,6 +26,7 @@ class BotsAdmin(admin.ModelAdmin):
         for obj in queryset:
             obj.active = not obj.active
             obj.save()
+            admin.ModelAdmin.log_change(None, request, obj, 'Changed active: %s' %obj.active)
     activate.short_description = 'activate/de-activate'
 
 #*****************************************************************************************************
@@ -34,25 +38,32 @@ class CcodeAdmin(BotsAdmin):
     search_fields = ('ccodeid__ccodeid','leftcode','rightcode','attr1','attr2','attr3','attr4','attr5','attr6','attr7','attr8')
     fieldsets = (
         (None, {'fields': ('ccodeid','leftcode','rightcode','attr1','attr2','attr3','attr4','attr5','attr6','attr7','attr8'),
-                'description': 'For description of user code lists and usage in mapping: see <a target="_blank" href="<a target="_blank" href="https://botsdocs.readthedocs.io/en/latest/configuration/mapping-scripts/code-conversion.html">documentation</a>.',
-                'classes': ('wide extrapretty',)
+                'description': 'For description of user code lists and usage in mapping: see <a target="_blank" href="https://botsdocs.readthedocs.io/en/latest/configuration/mapping-scripts/code-conversion.html">documentation</a>.',
+                'classes': ('',)
                }),
         )
     def lookup_allowed(self, lookup, *args, **kwargs):
         if lookup.startswith('ccodeid'):
             return True
         return super(CcodeAdmin, self).lookup_allowed(lookup, *args, **kwargs)
+    def get_form(self, request, obj=None, **kwargs):
+        # over-ride form text field widths to better fit their actual size
+        form = super(CcodeAdmin, self).get_form(request, obj, **kwargs)
+        for field in form.base_fields:
+            if form.base_fields[field].widget.attrs.get('class') == 'vTextField':
+                form.base_fields[field].widget.attrs['style'] = 'width: %dch;' %min(70,int(form.base_fields[field].widget.attrs['maxlength']))
+        return form
 admin.site.register(models.ccode,CcodeAdmin)
 
 class CcodetriggerAdmin(BotsAdmin):
-    list_display = ('ccodeid','ccodeid_desc',)
+    list_display = ('ccodeid','download','upload','rowcount','ccodeid_desc',)
     list_display_links = ('ccodeid',)
     ordering = ('ccodeid',)
     search_fields = ('ccodeid','ccodeid_desc')
 admin.site.register(models.ccodetrigger,CcodetriggerAdmin)
 
 class ChannelAdmin(BotsAdmin):
-    list_display = ('idchannel', 'inorout', 'type', 'communicationscript', 'remove', 'host', 'port', 'username', 'secret', 'path', 'filename','mdnchannel','testpath','archivepath','rsrv3','rsrv2','rsrv1','syslock','parameters','starttls','apop','askmdn','sendmdn','ftpactive', 'ftpbinary')
+    list_display = ('idchannel', 'inorout', 'type', 'communicationscript', 'remove', 'host', 'port', 'username', 'path', 'filename','mdnchannel','testpath','archivepath','rsrv3','rsrv2','rsrv1','syslock','parameters','starttls','apop','askmdn','sendmdn','ftpactive', 'ftpbinary')
     list_filter = ('inorout','type')
     ordering = ('idchannel',)
     readonly_fields = ('communicationscript',)
@@ -65,22 +76,29 @@ class ChannelAdmin(BotsAdmin):
                                         ('path','filename'),
                                         ('archivepath','rsrv3'),
                                         'desc'),
-                         'classes': ('wide extrapretty',)
+                         'classes': ('',)
                         }),
         ('Email specific',{'fields': ('starttls', 'apop', 'askmdn', 'sendmdn' ),
-                         'classes': ('collapse wide extrapretty',)
+                         'classes': ('collapse',)
                         }),
         ('FTP specific',{'fields': ('ftpactive', 'ftpbinary', 'ftpaccount' ),
-                         'classes': ('collapse wide extrapretty',)
+                         'classes': ('collapse',)
                         }),
         ('Safe writing & file locking',{'fields': ('mdnchannel','syslock', 'lockname'),
                          'description': 'For more info see <a target="_blank" href="https://botsdocs.readthedocs.io/en/latest/configuration/channel/file-locking.html">documentation</a><br>',
-                         'classes': ('collapse wide extrapretty',)
+                         'classes': ('collapse',)
                         }),
         ('Other',{'fields': ('testpath','keyfile','certfile','rsrv2','rsrv1','parameters'),
-                         'classes': ('collapse wide extrapretty',)
+                         'classes': ('collapse',)
                         }),
     )
+    def get_form(self, request, obj=None, **kwargs):
+        # over-ride form text field widths to better fit their actual size
+        form = super(ChannelAdmin, self).get_form(request, obj, **kwargs)
+        for field in form.base_fields:
+            if form.base_fields[field].widget.attrs.get('class') == 'vTextField':
+                form.base_fields[field].widget.attrs['style'] = 'width: %dch;' %min(70,int(form.base_fields[field].widget.attrs['maxlength']))
+        return form
 admin.site.register(models.channel,ChannelAdmin)
 
 class MyConfirmruleAdminForm(forms.ModelForm):
@@ -118,7 +136,7 @@ class ConfirmruleAdmin(BotsAdmin):
     ordering = ('confirmtype','ruletype')
     fieldsets = (
         (None, {'fields': ('active','negativerule','confirmtype','ruletype','frompartner', 'topartner','idroute','idchannel','messagetype'),
-                'classes': ('wide extrapretty',)
+                'classes': ('',)
                }),
         )
     def formfield_for_dbfield(self,db_field,**kwargs):
@@ -141,22 +159,22 @@ class PartnerAdmin(BotsAdmin):
     list_display_links = ('idpartner',)
     list_filter = ('active',)
     ordering = ('idpartner',)
-    search_fields = ('idpartner','name','mail','cc','address1','city','countrysubdivision','countrycode','postalcode','attr1','attr2','attr3','attr4','attr5','name1','name2','name3')
+    search_fields = ('idpartner','name','address1','city','countrysubdivision','countrycode','postalcode','mail','cc','attr1','attr2','attr3','attr4','attr5','name1','name2','name3','desc')
     fieldsets = (
         (None,          {'fields': ('active', ('idpartner', 'name'), ('mail','cc'),'desc',('startdate', 'enddate')),
-                         'classes': ('wide extrapretty',)
+                         'classes': ('',)
                         }),
         ('Address',{'fields': ('name1','name2','name3','address1','address2','address3',('postalcode','city'),('countrycode','countrysubdivision'),('phone1','phone2')),
-                         'classes': ('collapse wide extrapretty',)
+                         'classes': ('collapse',)
                         }),
         ('Is in groups',{'fields': ('group',),
-                         'classes': ('collapse wide extrapretty',)
+                         'classes': ('collapse',)
                         }),
         ('User defined',{'fields': ('attr1','attr2','attr3','attr4','attr5'),
-                         'classes': ('wide extrapretty',)
+                         'classes': ('collapse',)
                         }),
     )
-    def queryset(self, request):
+    def get_queryset(self, request):
         return self.model.objects.filter(isgroup=False)
 admin.site.register(models.partner,PartnerAdmin)
 
@@ -177,10 +195,10 @@ class PartnerGroepAdmin(BotsAdmin):
     search_fields = ('idpartner','name','desc')
     fieldsets = (
         (None,          {'fields': ('active', 'idpartner', 'name','desc',('startdate', 'enddate')),
-                         'classes': ('wide extrapretty',)
+                         'classes': ('',)
                         }),
     )
-    def queryset(self, request):
+    def get_queryset(self, request):
         return self.model.objects.filter(isgroup=True)
 admin.site.register(models.partnergroep,PartnerGroepAdmin)
 
@@ -196,23 +214,35 @@ class MyRouteAdminForm(forms.ModelForm):
         return self.cleaned_data
 
 class RoutesAdmin(BotsAdmin):
+    def fromchannel_link(self, obj):
+        url = reverse('admin:bots_channel_change', args=(obj.fromchannel_id,))
+        return format_html("<a href='{}'>{}</a>", url, obj.fromchannel)
+    fromchannel_link.admin_order_field = 'fromchannel'
+    fromchannel_link.short_description = 'fromchannel'
+
+    def tochannel_link(self, obj):
+        url = reverse('admin:bots_channel_change', args=(obj.tochannel_id,))
+        return format_html("<a href='{}'>{}</a>", url, obj.tochannel)
+    tochannel_link.admin_order_field = 'tochannel'
+    tochannel_link.short_description = 'tochannel'
+
     actions = ('activate',)
     form = MyRouteAdminForm
-    list_display = ('active','idroute','seq','routescript','fromchannel','fromeditype','frommessagetype','alt','frompartner','topartner','translt','tochannel','defer','toeditype','tomessagetype','frompartner_tochannel','topartner_tochannel','indefaultrun','testindicator','zip_incoming','zip_outgoing',)
+    list_display = ('active','indefaultrun','idroute','seq','routescript','fromchannel_link','fromeditype','frommessagetype','translt','alt','frompartner','topartner','tochannel_link','defer','toeditype','tomessagetype','frompartner_tochannel','topartner_tochannel','testindicator','zip_incoming','zip_outgoing',)
     list_display_links = ('idroute',)
     list_filter = ('active','notindefaultrun','idroute','fromeditype')
     ordering = ('idroute','seq')
     readonly_fields = ('routescript',)
     search_fields = ('idroute', 'fromchannel__idchannel','fromeditype', 'frommessagetype', 'alt', 'tochannel__idchannel','toeditype', 'tomessagetype', 'desc')
     fieldsets = (
-        (None,      {'fields':  (('active','notindefaultrun'),'routescript',('idroute', 'seq',),'fromchannel', ('fromeditype', 'frommessagetype'),'translateind','tochannel','desc'),
-                     'classes': ('wide extrapretty',)
+        (None,      {'fields':  (('active','notindefaultrun',),'routescript',('idroute', 'seq',),'fromchannel', ('fromeditype', 'frommessagetype'),'translateind', ('tochannel', 'defer',), 'desc'),
+                     'classes': ('',)
                     }),
         ('Filtering for outchannel',{'fields':('toeditype', 'tomessagetype','frompartner_tochannel', 'topartner_tochannel', 'testindicator'),
-                    'classes':  ('collapse wide extrapretty',)
+                    'classes':  ('collapse',)
                     }),
-        ('Advanced',{'fields':  ('alt','frompartner','topartner','defer','zip_incoming','zip_outgoing'),
-                     'classes': ('collapse wide extrapretty',)
+        ('Advanced',{'fields':  ('alt','frompartner','topartner','zip_incoming','zip_outgoing'),
+                     'classes': ('collapse',)
                     }),
     )
 admin.site.register(models.routes,RoutesAdmin)
@@ -243,10 +273,10 @@ class TranslateAdmin(BotsAdmin):
     search_fields = ('fromeditype', 'frommessagetype', 'alt', 'frompartner__idpartner', 'topartner__idpartner', 'tscript', 'toeditype', 'tomessagetype', 'desc')
     fieldsets = (
         (None,      {'fields': ('active', ('fromeditype', 'frommessagetype'),'tscript', ('toeditype', 'tomessagetype'),'desc'),
-                     'classes': ('wide extrapretty',)
+                     'classes': ('',)
                     }),
         ('Multiple translations per editype/messagetype',{'fields': ('alt', 'frompartner', 'topartner'),
-                     'classes': ('wide extrapretty',)
+                     'classes': ('',)
                     }),
     )
 admin.site.register(models.translate,TranslateAdmin)
@@ -263,7 +293,7 @@ class UniekAdmin(BotsAdmin):     #AKA counters
     search_fields = ('domein',)
     fieldsets = (
         (None,      {'fields': ('domein', 'nummer'),
-                     'classes': ('wide extrapretty',)
+                     'classes': ('',)
                     }),
     )
 admin.site.register(models.uniek,UniekAdmin)

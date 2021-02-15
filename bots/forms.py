@@ -181,9 +181,10 @@ class ViewConfirm(View):
     tochannel = django.forms.CharField(required=False,widget=HIDDENINPUT())
 
 class UploadFileForm(django.forms.Form):
-    file  = django.forms.FileField(label='Plugin to read',required=True,widget=django.forms.widgets.FileInput(attrs={'size':'100'}))
+    file  = django.forms.FileField(label='',required=True,widget=django.forms.widgets.FileInput(attrs={'size':'100'}))
 
 class PlugoutForm(django.forms.Form):
+    dbfilter = django.forms.CharField(required=False,label='Filter string',help_text='If not blank: Only include Database configuration, User code entries or Script file names which contain this string.<br/>Useful to create a plugin for a small subset of your configuration.<br/><br/>')
     databaseconfiguration = django.forms.BooleanField(required=False,initial=True,label='Database configuration',help_text='Routes, channels, translations, partners, etc. from the database.')
     umlists = django.forms.BooleanField(required=False,initial=True,label='User code lists',help_text='Your user code data from the database.')
     fileconfiguration = django.forms.BooleanField(required=False,initial=True,label='Script files',help_text='[bots/usersys] Grammars, mapping scrips, routes scripts, etc.')

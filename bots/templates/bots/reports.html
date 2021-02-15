@@ -29,7 +29,7 @@
         {% for row in queryset.object_list %}
             <tr  class="{% cycle 'row1' 'row2' %}">
                 <td>
-                    <div class="dropdown"><img class="action" src="/media/images/star.png" />
+                    <div class="dropdown"><img class="action" src="/media/images/icon-star-blue.svg" />
                         <ul>
                             <li><button class="botsheader" type="submit" name="report2incoming" value="{{row.idta}}" >View incoming</button></li>
                             <li><button class="botsheader" type="submit" name="report2outgoing" value="{{row.idta}}" >View outgoing</button></li>
@@ -41,12 +41,12 @@
                 </td>
                 <td>{% if row.status %}
                         {% if row.lasterror or row.lastok or row.lastopen %}
-                            <img src="/media/admin/img/icon_error.gif" style="width: 1em;"/>
+                            <img src="/media/images/icon-no.svg"/>
                         {% else %}
-                            <img src="/media/admin/img/icon_alert.gif" style="width: 1em;"/>
+                            <img src="/media/images/icon-alert.svg"/>
                         {% endif %}
                     {% else %}
-                        <img src="/media/admin/img/icon_success.gif" style="width: 1em;"/>
+                        <img src="/media/images/icon-yes.svg"/>
                     {% endif %}
                 </td>
                 <td>{{row.type}}</td>
@@ -56,16 +56,16 @@
                 <td class="nowrap">{% if row.filesize %}{{row.filesize|filesizeformat}}{% endif %}</td>
                 <td>
                     {% if row.lasterror %}
-                        {{row.lasterror}} files with errors; 
+                        {{row.lasterror}} file{{ row.lasterror|pluralize }} with errors; 
                     {% endif %}
                     {% if row.lastok %}
-                        {{row.lastok}} files got stuck; 
+                        {{row.lastok}} file{{row.lastok|pluralize}} got stuck; 
                     {% endif %}
                     {% if row.lastopen %}
-                        {{row.lastopen}} system errors; 
+                        {{row.lastopen}} system error{{row.lastopen|pluralize}}; 
                     {% endif %}
                     {% if row.processerrors %}
-                        {{row.processerrors}} errors in processes; 
+                        {{row.processerrors}} process error{{row.processerrors|pluralize}}; 
                     {% endif %}
                 </td>
                 <td>{{row.rsrv1}}</td>

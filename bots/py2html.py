@@ -11,10 +11,10 @@ __author__ = 'Raymond Hettinger'
 # The whole string is one token so the line numbers on those lines get the string
 # highlight colour. No simple way to fix this, but it's not really an issue.
 import sys
-import __builtin__ as builtins
+import builtins as builtins
 import keyword
 import tokenize
-import cgi
+import html
 import functools
 
 #### Analyze Python Source #################################
@@ -83,7 +83,7 @@ def html_highlight(classified_text):
     for kind, text in classified_text:
         if kind:
             result.append('<span class="%s">' % kind)
-        result.append(cgi.escape(text))
+        result.append(html.escape(text))
         if kind:
             result.append('</span>')
     return ''.join(result)

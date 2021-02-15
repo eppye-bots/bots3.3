@@ -1,5 +1,5 @@
 #Globals used by Bots
-version = '3.2.0'       #bots version
+version = '4.0.0'       #bots version - there are major backwards incompatilbe changes from 3.2
 db = None               #db-object
 ini = None              #ini-file-object that is read (bots.ini)
 logger = None           #logger or bots-engine
