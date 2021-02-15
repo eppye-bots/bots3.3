@@ -1363,18 +1363,17 @@ class ftpis(ftp):
 class sftp(_comsession):
     ''' SFTP: SSH File Transfer Protocol (SFTP is not FTP run over SSH, SFTP is not Simple File Transfer Protocol)
         standard port to connect to is port 22.
-        requires paramiko and pycrypto to be installed
+        requires paramiko.
         based on class ftp and ftps above with code from demo_sftp.py which is included with paramiko
-        Mike Griffin 16/10/2010
-        Henk-jan ebbers 20110802: when testing I found that the transport also needs to be closed. So changed transport ->self.transport, and close this in disconnect
-        henk-jan ebbers 20111019: disabled the host_key part for now (but is very interesting). Is not tested; keys should be integrated in bots also for other protocols.
-        henk-jan ebbers 20120522: hostkey and privatekey can now be handled in user exit.
     '''
     def connect(self):
         try:
             import paramiko
         except:
             raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko".')
+        if paramiko.__version__ < '2.0':
+            raise ImportError('Dependency failure: communicationtype "sftp" requires python library "paramiko" version 2.0 or higher (version %s installed)' %paramiko.__version__)
+
         # setup logging if required
         ftpdebug = botsglobal.ini.getint('settings','ftpdebug',0)
         if ftpdebug > 0:
@@ -1382,37 +1381,45 @@ class sftp(_comsession):
             # Convert ftpdebug to paramiko logging level (1=20=info, 2=10=debug)
             paramiko.util.log_to_file(log_file, 30-(ftpdebug*10))
 
-        # Get hostname and port to use
         hostname = self.channeldict['host']
         try:
             port = int(self.channeldict['port'])
         except:
             port = 22 # default port for sftp
 
-        if self.userscript and hasattr(self.userscript,'hostkey'):
+        #Server authentication:  hostkey to validate a server’s identity. only via user scripting
+        if self.userscript and hasattr(self.userscript,'hostkey'):  
             hostkey = botslib.runscript(self.userscript,self.scriptname,'hostkey',channeldict=self.channeldict)
         else:
             hostkey = None
-        if self.userscript and hasattr(self.userscript,'privatekey'):
-            privatekeyfile,pkeytype,pkeypassword = botslib.runscript(self.userscript,self.scriptname,'privatekey',channeldict=self.channeldict)
+            
+        #Client identification
+        #either:
+        #1 user-password
+        #2 user-privatekey 
+        #2 user-encrypted privatekey --> passphrase is needed 
+        secret = self.channeldict['secret'] or None     #if password is empty string: use None, else error can occur.
+        if self.userscript and hasattr(self.userscript,'privatekey'):       #via user scripting
+            privatekeyfile,pkeytype,passphrase = botslib.runscript(self.userscript,self.scriptname,'privatekey',channeldict=self.channeldict)
             if pkeytype == 'RSA':
-                pkey = paramiko.RSAKey.from_private_key_file(filename=privatekeyfile,password=pkeypassword)
+                pkey = paramiko.RSAKey.from_private_key_file(filename=privatekeyfile,password=passphrase)
             else:
-                pkey = paramiko.DSSKey.from_private_key_file(filename=privatekeyfile,password=pkeypassword)
+                pkey = paramiko.DSSKey.from_private_key_file(filename=privatekeyfile,password=passphrase)
+        elif self.channeldict['keyfile']:           #if keyfile is indicated in channel.
+            #for now: always RSAKey. 
+            pkey = paramiko.RSAKey.from_private_key_file(filename=self.channeldict['keyfile'],password=secret)
+            secret = None   #if keyfile, secret is used as passphrase. So clear secret for login (assuming: if keyfile, no password is used) 
         else:
             pkey = None
 
-        if self.channeldict['secret']:  #if password is empty string: use None. Else error can occur.
-            secret = self.channeldict['secret']
-        else:
-            secret = None
-        # now, connect and use paramiko Transport to negotiate SSH2 across the connection
+        #connect and use paramiko Transport to negotiate SSH2 across the connection
         self.transport = paramiko.Transport((hostname,port))
         self.transport.connect(username=self.channeldict['username'],password=secret,hostkey=hostkey,pkey=pkey)
         self.session = paramiko.SFTPClient.from_transport(self.transport)
         channel = self.session.get_channel()
         channel.settimeout(botsglobal.ini.getint('settings','ftptimeout',10))
         self.set_cwd()
+
 
     def set_cwd(self):
         self.session.chdir('.')     #getcwd does not work without this chdir first!
