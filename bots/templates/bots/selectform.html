@@ -4,23 +4,27 @@
 <!-- 20/01/2012 MJG - add datetimepicker widget to the from/until dates
      http://trentrichardson.com/examples/timepicker/  -->
 {% block extrahead %}
-<link rel="stylesheet" type="text/css" href="/media/css/jquery-ui.css" />
+<link rel="stylesheet" type="text/css" href="/media/css/jquery-ui.min.css" />
 <link rel="stylesheet" type="text/css" href="/media/css/jquery-ui-timepicker-addon.css" />
-<script src="/media/admin/js/jquery.min.js"></script>
-<script src="/media/js/jquery-ui.min.js"></script>
-<script src="/media/js/jquery-ui-timepicker-addon.js"></script>
+<script type="text/javascript" src="/media/admin/js/vendor/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="/media/js/jquery-ui.min.js"></script>
+<script type="text/javascript" src="/media/js/jquery-ui-timepicker-addon.js"></script>
 <script type="text/javascript">
     $(function() {
         $("#id_datefrom").datetimepicker({
             dateFormat: 'yy-mm-dd',
-            timeFormat: 'hh:mm:ss',
+            timeFormat: 'HH:mm:ss',
+            showSecond: false,
+            timeInput: true,
             minDate: {{ bots_minDate }},
             maxDate: 0.1,
         });
         $("#id_dateuntil").datetimepicker({
             ampm: false,
             dateFormat: 'yy-mm-dd',
-            timeFormat: 'hh:mm:ss',
+            timeFormat: 'HH:mm:ss',
+            showSecond: false,
+            timeInput: true,
             minDate: {{ bots_minDate }},
             maxDate: 0.1,
         });
