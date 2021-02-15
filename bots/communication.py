@@ -396,25 +396,25 @@ class _comsession(object):
             -   filter emails/attachments based on contenttype
             -   email-address should be know by bots (can be turned off)
         '''
-        whitelist_multipart = set(['multipart/mixed','multipart/digest','multipart/signed','multipart/report','message/rfc822','multipart/alternative','multipart/related'])
-        whitelist_major = ['text','application']
-        blacklist_contenttype = set(['text/html','text/enriched','text/rtf','text/richtext','application/postscript','text/vcard','text/css'])
+        allowlist_multipart = set(['multipart/mixed','multipart/digest','multipart/signed','multipart/report','message/rfc822','multipart/alternative','multipart/related'])
+        allowlist_major = ['text','application']
+        blocklist_contenttype = set(['text/html','text/enriched','text/rtf','text/richtext','application/postscript','text/vcard','text/css'])
         def savemime(msg):
             ''' save contents of email as separate files.
                 is a nested function.
                 3x filtering:
-                -   whitelist of multipart-contenttype
-                -   whitelist of body-contentmajor
-                -   blacklist of body-contentytpe
+                -   allowlist of multipart-contenttype
+                -   allowlist of body-contentmajor
+                -   blocklist of body-contentytpe
             '''
             nrmimesaved = 0     #count nr of valid 'attachments'
             contenttype     = msg.get_content_type()
             if msg.is_multipart():
-                if contenttype in whitelist_multipart:
+                if contenttype in allowlist_multipart:
                     for part in msg.get_payload():
                         nrmimesaved += savemime(part)
             else:    #is not a multipart
-                if msg.get_content_maintype() not in whitelist_major or contenttype in blacklist_contenttype:
+                if msg.get_content_maintype() not in allowlist_major or contenttype in blocklist_contenttype:
                     return 0
                 content = msg.get_payload(decode=True)
                 if not content or content.isspace():
