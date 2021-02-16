@@ -486,7 +486,7 @@ def ccodecsv(request,*kw,**kwargs):
         if form.is_valid():
             #read the file and load into ccode table
             try:
-                results={'ignored':0,'inserted':0,'updated':0,'unchanged':0}
+                results={'ignored':0,'inserted':0,'updated':0,'deleted':0,'unchanged':0}
                 with open(request.FILES['file'].temporary_file_path(), 'r',encoding='utf-8') as csvfile:
                     csvin = csv.reader(csvfile,dialect='excel')
                     for row in csvin:
@@ -499,12 +499,16 @@ def ccodecsv(request,*kw,**kwargs):
                                     row.append('')
                             try:
                                 record = models.ccode.objects.get(ccodeid=row[0],leftcode=row[1])
+                                # if rightcode is blank, delete the record
+                                if not row[2]:
+                                    record.delete()
+                                    results['deleted'] += 1
                                 # Check for "unchanged" records
                                 # This is not strictly necessary, could just update all
                                 # but it provides useful feedback to the user
-                                if (record.rightcode == row[2] and record.attr1 == row[3] and record.attr2 == row[4]
-                                    and record.attr3 == row[5] and record.attr4 == row[6] and record.attr5 == row[7]
-                                    and record.attr6 == row[8] and record.attr7 == row[9] and record.attr8 == row[10]):
+                                elif (record.rightcode == row[2] and record.attr1 == row[3] and record.attr2 == row[4]
+                                      and record.attr3 == row[5] and record.attr4 == row[6] and record.attr5 == row[7]
+                                      and record.attr6 == row[8] and record.attr7 == row[9] and record.attr8 == row[10]):
                                     results['unchanged'] += 1
                                 else:
                                     record.rightcode = row[2]
@@ -519,11 +523,14 @@ def ccodecsv(request,*kw,**kwargs):
                                     record.save()
                                     results['updated'] += 1
                             except django.core.exceptions.ObjectDoesNotExist:
-                                record = models.ccode(ccodeid=models.ccodetrigger.objects.get(ccodeid=row[0]),leftcode = row[1],
-                                    rightcode = row[2], attr1 = row[3], attr2 = row[4], attr3 = row[5], attr4 = row[6],
-                                    attr5 = row[7], attr6 = row[8], attr7 = row[9], attr8 = row[10])
-                                record.save()
-                                results['inserted'] += 1
+                                if row[1] and row[2]:
+                                    record = models.ccode(ccodeid=models.ccodetrigger.objects.get(ccodeid=row[0]),leftcode = row[1],
+                                        rightcode = row[2], attr1 = row[3], attr2 = row[4], attr3 = row[5], attr4 = row[6],
+                                        attr5 = row[7], attr6 = row[8], attr7 = row[9], attr8 = row[10])
+                                    record.save()
+                                    results['inserted'] += 1
+                                else:
+                                    results['ignored'] += 1 # can't add a record without leftcode and rightcode
                         else:
                             results['ignored'] += 1 # ccodeid not equal
             except Exception as msg:

@@ -17,10 +17,12 @@
     {% else %}
         <p>&nbsp;Select a CSV file from your file system.</p>
         <ul>
-            <li>First column (ccodeid) must be "{{ ccodeid }}" or it will be ignored.</li>
-            <li>Second column (leftcode) is assumed to be a unique key.</li>
-            <li>Rows are inserted or updated as necessary; unchanged rows are skipped.</li>
-            <li>Deletions must be done manually from User Codes list view.</li>
+            <li>Should have 11 columns: ccodeid, leftcode, rightcode, attr1, attr2, attr3, attr4, attr5, attr6, attr7, attr8</li>
+            <li>Column 1 (ccodeid) must be "{{ ccodeid }}", others will be <b>ignored</b>.</li>
+            <li>Column 2 (leftcode) must be unique within this list.</li>
+            <li>Rows with a new unique leftcode and non-blank rightcode are <b>inserted</b>.</li>
+            <li>Rows with changed rightcode or attr1-attr8 are <b>updated</b>.</li>
+            <li>Rows with blank rightcode are <b>deleted</b>.</li>
         </ul>
         <br/>
         <table>
