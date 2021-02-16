@@ -1387,7 +1387,7 @@ class sftp(_comsession):
         except:
             port = 22 # default port for sftp
 
-        #Server authentication:  hostkey to validate a server’s identity. only via user scripting
+        #Server authentication:  hostkey to validate a server's identity. only via user scripting
         if self.userscript and hasattr(self.userscript,'hostkey'):  
             hostkey = botslib.runscript(self.userscript,self.scriptname,'hostkey',channeldict=self.channeldict)
         else:
