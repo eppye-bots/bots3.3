@@ -29,6 +29,7 @@ class new(object):
         self.keep_track_if_outchannel_deferred = {}
 
     def run(self):
+        print 'start new.run'
         for route in self.routestorun:
             botslib.setrouteid(route)
             self.router(route)
@@ -332,12 +333,13 @@ class resend(new):
             do_retransmit = True
             #resend transaction
             #how does this work?
-            #a send edi-file has status EXTERNOUT (with 'filename' but no stored file)
-            #need to go back to status FILEOUT...but there might be more ta with status FILEOUT.
+            #a send edi-file has status EXTERNOUT (but filename is extreenal fiel name, not a stored file)
+            #so need to go back to status FILEOUT...but there might be more ta with status FILEOUT.
             #eg file->mimefile is from FILEOUT to FILEOUT. but if other postprocessing are used these also are from FILEOUT to FILEOUT...
             #solution: when mimefying set rsrv2 to 1 (is a num field)
-            #if first ta.FILEOUT is mime: use it
-            #else use 2nd FILEOUT/parent
+            #than:
+            #    if first ta.FILEOUT is not mime: use first ta.FILEOUT
+            #    else use 2nd FILEOUT/parent
             #so in a resend: run routes/routeparts as usual - but no real incommunication.
             #when a re-injected ta.FILEOUT is there pick up and send. if needed, mimified - but not post-processed.
 
@@ -347,8 +349,8 @@ class resend(new):
             #get parent of ta.EXTERNOUT
             ta_resend = botslib.OldTransaction(row['parent'])
             ta_resend.synall()
-            if ta_resend.rsrv2 == 1:    #mimefile...use parent
-                ta_resend2 = botslib.OldTransaction(ta_resend['parent'])
+            if ta_resend.rsrv2 == 1:    #if mimefile...use parent
+                ta_resend2 = botslib.OldTransaction(ta_resend.parent)
                 ta_externin = ta_resend2.copyta(status=EXTERNIN,statust=DONE) #inject; status is DONE so this ta is not used further
             else:
                 ta_externin = ta_resend.copyta(status=EXTERNIN,statust=DONE) #inject; status is DONE so this ta is not used further
