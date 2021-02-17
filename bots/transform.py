@@ -4,7 +4,7 @@ import copy
 import collections
 import unicodedata
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except ImportError:
     import pickle
 import json as simplejson
@@ -105,7 +105,7 @@ def _translate_one_file(row,routedict,endstatus,userscript,scriptname):
                     inn_splitup.ta_info['divtext'] = tscript     #store name of mapping script for reporting (used for display in GUI).
                     #initialize new out-object*************************
                     ta_translated = ta_splitup.copyta(status=endstatus,frommail='',tomail='',cc='')     #make ta for translated message (new out-ta); explicitly erase mail-addresses
-                    filename_translated = unicode(ta_translated.idta)
+                    filename_translated = str(ta_translated.idta)
                     #out_translated.ta_info is initialised
                     out_translated = outmessage.outmessage_init(editype=toeditype,
                                                                 messagetype=tomessagetype,
@@ -190,7 +190,8 @@ def _translate_one_file(row,routedict,endstatus,userscript,scriptname):
                 if inn_splitup.ta_info.get('KillWholeFile',False):
                     raise botslib.KillWholeFileException(msg)
                 txt = botslib.txtexc()
-                ta_splitup.update(statust=ERROR,errortext=txt,**inn_splitup.ta_info)   #update db. inn_splitup.ta_info could be changed by mappingscript. Is this useful?
+                inn_splitup.ta_info['errortext'] = txt
+                ta_splitup.update(statust=ERROR,**inn_splitup.ta_info)   #update db. inn_splitup.ta_info could be changed by mappingscript. Is this useful?
                 ta_splitup.deletechildren()
             else:
                 ta_splitup.update(statust=DONE, **inn_splitup.ta_info)   #update db. inn_splitup.ta_info could be changed by mappingscript. Is this useful?
@@ -203,7 +204,7 @@ def _translate_one_file(row,routedict,endstatus,userscript,scriptname):
         edifile.handleconfirm(ta_fromfile,routedict,error=False)
         botsglobal.logger.debug('Parse & passthrough for input file "%(filename)s".',row)
     except botslib.FileTooLargeError as msg:
-        ta_parsed.update(statust=ERROR,errortext=unicode(msg))
+        ta_parsed.update(statust=ERROR,errortext=str(msg))
         ta_parsed.deletechildren()
         botsglobal.logger.debug('Error in translating input file "%(filename)s":\n%(msg)s',{'filename':row['filename'],'msg':msg})
     except:
@@ -369,7 +370,7 @@ def calceancheckdigit(ean):
     except AttributeError:
         raise botslib.EanError('GTIN "%(ean)s" should be string, but is a "%(type)s".',{'ean':ean,'type':type(ean)})
     sum1 = sum(int(x)*3 for x in ean[-1::-2]) + sum(int(x) for x in ean[-2::-2])
-    return unicode((1000-sum1)%10)
+    return str((1000-sum1)%10)
 
 def calceancheckdigit2(ean):
     ''' just for fun: slightly different algoritm for calculating the ean checkdigit. same results; is 10% faster.
@@ -379,7 +380,7 @@ def calceancheckdigit2(ean):
     for i in ean[-1::-1]:
         sum1 += int(i) * factor
         factor = 4 - factor         #factor flip-flops between 3 and 1...
-    return unicode(((1000 - sum1) % 10))
+    return str(((1000 - sum1) % 10))
 
 def checkean(ean):
     ''' input: EAN; returns: True (valid EAN) of False (EAN not valid)'''
@@ -396,12 +397,12 @@ def unique(domein,updatewith=None):
     ''' generate unique number per domain.
         uses db to keep track of last generated number.
     '''
-    return unicode(botslib.unique(domein,updatewith))
+    return str(botslib.unique(domein,updatewith))
 
 def unique_runcounter(domein,updatewith=None):
     ''' as unique, but per run of bots-engine.
     '''
-    return unicode(botslib.unique_runcounter(domein,updatewith))
+    return str(botslib.unique_runcounter(domein,updatewith))
 
 def inn2out(inn,out):
     ''' copies inn-message to outmessage

@@ -38,7 +38,7 @@ def mergemessages(startstatus,endstatus,idroute,rootidta=None):
             ta_info = dict(row)
             ta_fromfile = botslib.OldTransaction(ta_info['idta'])
             ta_tofile = ta_fromfile.copyta(status=endstatus)  #copy db_ta
-            ta_info['filename'] = unicode(ta_tofile.idta)     #create filename for enveloped message
+            ta_info['filename'] = str(ta_tofile.idta)     #create filename for enveloped message
             ta_info['idroute'] = idroute
             botsglobal.logger.debug('Envelope 1 message editype: %(editype)s, messagetype: %(messagetype)s.',ta_info)
             envelope(ta_info,[row['filename']])
@@ -95,7 +95,7 @@ def mergemessages(startstatus,endstatus,idroute,rootidta=None):
                 ta_fromfile = botslib.OldTransaction(row2['idta'])             #edi message to be merged/envelope
                 if not filename_list:                                          #if first time in loop: copy ta to new/merged/target ta
                     ta2_tofile = ta_fromfile.copyta(status=endstatus,parent=0) #copy db_ta; parent=0 as enveloping works via child, not parent
-                    ta_info['filename'] = unicode(ta2_tofile.idta)
+                    ta_info['filename'] = str(ta2_tofile.idta)
                 ta_fromfile.update(child=ta2_tofile.idta,statust=DONE)         #add child-relation to the org ta
                 filename_list.append(row2['filename'])
             botsglobal.logger.debug('Merge and envelope: editype: %(editype)s, messagetype: %(messagetype)s, %(nrmessages)s messages',ta_info)
@@ -248,7 +248,7 @@ class edifact(Envelope):
             reserve = self.ta_info['reserve']
 
         #UNB reference: set from mapping or (counter per sender or receiver)
-        self.ta_info['reference'] = self.envelope_content[0].get('0020') or unicode(botslib.unique('unbcounter_' + UNBsender if not botsglobal.ini.getboolean('settings','interchangecontrolperpartner',False) else UNBreceiver ))
+        self.ta_info['reference'] = self.envelope_content[0].get('0020') or str(botslib.unique('unbcounter_' + UNBsender if not botsglobal.ini.getboolean('settings','interchangecontrolperpartner',False) else UNBreceiver ))
         #testindicator:
         if self.envelope_content[0].get('0035') and self.envelope_content[0].get('0035') != '0':  #1. set from mapping
             testindicator = '1'
@@ -310,9 +310,9 @@ class tradacoms(Envelope):
         botslib.tryrunscript(self.userscript,self.scriptname,'ta_infocontent',ta_info=self.ta_info)
         #prepare data for envelope
         if botsglobal.ini.getboolean('settings','interchangecontrolperpartner',False):
-            self.ta_info['reference'] = unicode(botslib.unique('stxcounter_' + self.ta_info['topartner']))
+            self.ta_info['reference'] = str(botslib.unique('stxcounter_' + self.ta_info['topartner']))
         else:
-            self.ta_info['reference'] = unicode(botslib.unique('stxcounter_' + self.ta_info['frompartner']))
+            self.ta_info['reference'] = str(botslib.unique('stxcounter_' + self.ta_info['frompartner']))
         #build the envelope segments (that is, the tree from which the segments will be generated)
         self.out.put({'BOTSID':'STX',
                         'STDS1':self.ta_info['STX.STDS1'],
@@ -412,7 +412,7 @@ class x12(Envelope):
         ISAreceiver = self.envelope_content[0].get('ISA06') or self.ta_info.get('ISA08') or self.ta_info['topartner']
         GS03receiver = self.envelope_content[1].get('GS03') or self.ta_info.get('GS03') or self.ta_info['frompartner']
         #ISA/GS reference: set from mapping or (counter per sender or receiver)
-        self.ta_info['reference'] = self.envelope_content[0].get('ISA13') or unicode(botslib.unique('isacounter_' + self.ta_info['topartner'] if botsglobal.ini.getboolean('settings','interchangecontrolperpartner',False) else frompartner))
+        self.ta_info['reference'] = self.envelope_content[0].get('ISA13') or str(botslib.unique('isacounter_' + self.ta_info['topartner'] if botsglobal.ini.getboolean('settings','interchangecontrolperpartner',False) else frompartner))
         #date and time
         senddate = botslib.strftime('%Y%m%d')
         sendtime = botslib.strftime('%H%M')

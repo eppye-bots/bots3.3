@@ -74,7 +74,7 @@ def start():
                 p1,p2 = os.path.split(arg)
                 editype = os.path.basename(p1)
                 messagetype,ext = os.path.splitext(p2)
-                messagetype = unicode(messagetype)
+                messagetype = str(messagetype)
                 print('grammarcheck',editype,messagetype)
             elif not editype:
                 editype = arg

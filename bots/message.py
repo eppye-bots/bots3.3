@@ -231,7 +231,7 @@ class Message(object):
                         if value is None:
                             value = ''
                         else:
-                            value = unicode(value).strip()
+                            value = str(value).strip()
                             if value:
                                 repeating_field_has_data = True
                         newlist.append(self._formatfield(value,field_definition,record_definition,node_instance))
@@ -290,13 +290,13 @@ class Message(object):
                         #check each dict, convert values to unicode
                         #also: check if dict has data at all
                         composite_has_data = False
-                        for key,value in comp.items():
-                            if not isinstance(key,basestring):
+                        for key,value in list(comp.items()):
+                            if not isinstance(key,str):
                                 raise botslib.MappingFormatError('Repeating composite: keys must be strings: put(%(mpath)s)',{'mpath':valuelist})
                             if value is None:
                                 comp[key] = ''
                             else:
-                                comp[key] = unicode(value).strip()  #leading and trailing spaces are stripped from the values
+                                comp[key] = str(value).strip()  #leading and trailing spaces are stripped from the values
                                 if comp[key]:
                                     composite_has_data = True
                         if composite_has_data:
@@ -330,7 +330,7 @@ class Message(object):
 
     @staticmethod
     def _logfieldcontent(noderecord):
-        for key,value in noderecord.items():
+        for key,value in list(noderecord.items()):
             if key not in ['BOTSID','BOTSIDnr']:
                 botsglobal.logger.debug('    "%(key)s" : "%(value)s"',{'key':key,'value':value})
 

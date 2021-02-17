@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 import sys
 import os
 import time
@@ -26,7 +26,7 @@ def server_error(request, template_name='500.html'):
     exc_info = traceback.format_exc(None)
     botsglobal.logger.info('Ran into server error: "%(error)s"',{'error':exc_info})
     temp = django.template.loader.get_template(template_name)  #You need to create a 500.html template.
-    return django.http.HttpResponseServerError(temp.render(django.template.Context({'exc_info':exc_info})))
+    return django.http.HttpResponseServerError(temp.render({'exc_info':exc_info}))
 
 
 def index(request,*kw,**kwargs):
@@ -427,7 +427,7 @@ def srcfiler(request,*kw,**kwargs):
                 return django.shortcuts.render(request,'bots/srcfiler.html',{'src':src, 'html_source':html_source})
             else:
                 return django.shortcuts.render(request,'bots/srcfiler.html',{'error_content': 'File %s not allowed.' %src})
-        except:
+        except FileNotFoundError:
             return django.shortcuts.render(request,'bots/srcfiler.html',{'error_content': 'No such file.'})
 
 def logfiler(request,*kw,**kwargs):
@@ -443,7 +443,7 @@ def logfiler(request,*kw,**kwargs):
         try:
             with open(logf) as f:
                 logdata = f.read()
-        except:
+        except FileNotFoundError:
             logdata =  'No such file %s'%logf
 
         if 'action' in request.GET and request.GET['action'] == 'download':
@@ -471,7 +471,7 @@ def plugin(request,*kw,**kwargs):
                     if pluglib.read_plugin(request.FILES['file'].temporary_file_path()):
                         messages.add_message(request, messages.INFO, 'Overwritten existing files.')
                 except Exception as msg:
-                    notification = 'Error reading plugin: "%s".'%unicode(msg)
+                    notification = 'Error reading plugin: "%s".'%str(msg)
                     botsglobal.logger.error(notification)
                     messages.add_message(request, messages.INFO, notification)
                 else:
@@ -495,7 +495,7 @@ def plugin_index(request,*kw,**kwargs):
             try:
                 pluglib.read_index('index')
             except Exception as msg:
-                notification = 'Error reading configuration index file: "%s".'%unicode(msg)
+                notification = 'Error reading configuration index file: "%s".'%str(msg)
                 botsglobal.logger.error(notification)
                 messages.add_message(request, messages.INFO, notification)
             else:
@@ -512,7 +512,7 @@ def plugout_index(request,*kw,**kwargs):
             dummy_for_cleaned_data = {'databaseconfiguration':True,'umlists':botsglobal.ini.getboolean('settings','codelists_in_plugin',True),'databasetransactions':False}
             pluglib.make_index(dummy_for_cleaned_data,filename)
         except Exception as msg:
-            notification = 'Error writing configuration index file: "%s".'%unicode(msg)
+            notification = 'Error writing configuration index file: "%s".'%str(msg)
             botsglobal.logger.error(notification)
             messages.add_message(request, messages.INFO, notification)
         else:
@@ -543,7 +543,7 @@ def plugout_backup_core(request,*kw,**kwargs):
                                     }
         pluglib.make_plugin(dummy_for_cleaned_data,filename)
     except Exception as msg:
-        notification = 'Error writing backup plugin: "%s".'%unicode(msg)
+        notification = 'Error writing backup plugin: "%s".'%str(msg)
         botsglobal.logger.error(notification)
         messages.add_message(request, messages.INFO, notification)
     else:
@@ -564,8 +564,8 @@ def plugout(request,*kw,**kwargs):
                 try:
                     pluglib.make_plugin(form.cleaned_data,filename)
                 except botslib.PluginError as msg:
-                    botsglobal.logger.error(unicode(msg))
-                    messages.add_message(request,messages.INFO,unicode(msg))
+                    botsglobal.logger.error(str(msg))
+                    messages.add_message(request,messages.INFO,str(msg))
                 else:
                     botsglobal.logger.info('Plugin "%(file)s" created successful.',{'file':filename})
                     response = django.http.HttpResponse(open(filename, 'rb').read(), content_type='application/zip')
@@ -700,12 +700,12 @@ def runengine(request,*kw,**kwargs):
 
         #either bots-engine is run directly or via jobqueue-server:
         if botsglobal.ini.getboolean('jobqueue','enabled',False):   #run bots-engine via jobqueue-server; reports back if job is queued
-            import job2queue
+            from . import job2queue
             terug = job2queue.send_job_to_jobqueue(lijst)
             messages.add_message(request, messages.INFO, job2queue.JOBQUEUEMESSAGE2TXT[terug])
             botsglobal.logger.info(job2queue.JOBQUEUEMESSAGE2TXT[terug])
         else:                                                       #run bots-engine direct.; reports back if bots-engien is started succesful. **not reported: problems with running.
-            botsglobal.logger.info('Run bots-engine with parameters: "%(parameters)s"',{'parameters':unicode(lijst)})
+            botsglobal.logger.info('Run bots-engine with parameters: "%(parameters)s"',{'parameters':str(lijst)})
             #first check if another instance of bots-engine is running/if port is free
             try:
                 engine_socket = botslib.check_if_other_engine_is_running()
