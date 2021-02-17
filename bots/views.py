@@ -26,7 +26,7 @@ def server_error(request, template_name='500.html'):
     exc_info = traceback.format_exc(None)
     botsglobal.logger.info('Ran into server error: "%(error)s"',{'error':exc_info})
     temp = django.template.loader.get_template(template_name)  #You need to create a 500.html template.
-    return django.http.HttpResponseServerError(temp.render(django.template.Context({'exc_info':exc_info})))
+    return django.http.HttpResponseServerError(temp.render({'exc_info':exc_info}))
 
 
 def index(request,*kw,**kwargs):
@@ -427,7 +427,7 @@ def srcfiler(request,*kw,**kwargs):
                 return django.shortcuts.render(request,'bots/srcfiler.html',{'src':src, 'html_source':html_source})
             else:
                 return django.shortcuts.render(request,'bots/srcfiler.html',{'error_content': 'File %s not allowed.' %src})
-        except:
+        except FileNotFoundError:
             return django.shortcuts.render(request,'bots/srcfiler.html',{'error_content': 'No such file.'})
 
 def logfiler(request,*kw,**kwargs):
@@ -443,7 +443,7 @@ def logfiler(request,*kw,**kwargs):
         try:
             with open(logf) as f:
                 logdata = f.read()
-        except:
+        except FileNotFoundError:
             logdata =  'No such file %s'%logf
 
         if 'action' in request.GET and request.GET['action'] == 'download':
