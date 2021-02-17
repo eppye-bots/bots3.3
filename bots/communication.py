@@ -101,52 +101,71 @@ class _comsession(object):
         self.rootidta = rootidta
 
     def run(self):
+        # Max connection tries; bots tries to connect several times per run. this is probably a better strategy than having long time-outs.
+        # This is useful for both incoming and outgoing channels. TODO later version: setting per channel  [MJG not sure this is needed per channel]
+        maxconnectiontries = botsglobal.ini.getint('settings','maxconnectiontries',3)
+        nr_connectiontries = 0
+
         if self.channeldict['inorout'] == 'out':
             self.precommunicate()
-            self.connect()
+
+            while True:
+                nr_connectiontries += 1
+                try:
+                    #print('connect',nr_connectiontries)
+                    self.connect()
+                except Exception as exc:
+                    #print(exc)
+                    if nr_connectiontries >= maxconnectiontries:
+                        raise(exc) from exc # just re-raise the original exception, no context chain
+                else:
+                    break # out-connection OK
+
             self.outcommunicate()
             self.disconnect()
             self.archive()
+
         else:   #do incommunication
             if self.command == 'new': #only in-communicate for new run
-                #~ print('in communication run 1')
                 #handle maxsecondsperchannel: use global value from bots.ini unless specified in channel. (In database this is field 'rsrv2'.)
-                self.maxsecondsperchannel = self.channeldict['rsrv2'] if self.channeldict['rsrv2'] is not None and self.channeldict['rsrv2'] > 0 else botsglobal.ini.getint('settings','maxsecondsperchannel',sys.maxsize)
-                #bots tries to connect several times. this is probably a better stategy than having long time-outs.
-                max_nr_connect_tries = botsglobal.ini.getint('settings','maxconnectiontries',3)        #how often does bots try to connect. TODO later version: setting per channel
-                nr_connect_tries = 0
+                # TODO: MJG in hindsight, a "maxfiles" value would be more useful. Sometimes in-channel is very fast and out-channel
+                # is very slow. If bots receives 1000 files in 30 seconds then they have to be sent even if it takes 3 hours. 
+                # I have needed to carefully "fine-tune" maxseconds on fast in-channels.
+                self.maxsecondsperchannel = botsglobal.ini.getint('settings','maxsecondsperchannel',sys.maxsize)
+                try:
+                    secs = int(self.channeldict['rsrv2'])
+                    if secs > 0:
+                        self.maxsecondsperchannel = secs
+                except:
+                    pass
+                # Max failures; bots keeps count of consecutive failures across runs for an in-channel before reporting a process error
+                # from channel. should be integer, but only textfields were left. so might be None->use 0.
+                maxfailures = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
+                domain = (self.channeldict['idchannel'] + '_failure')[:35]
                 while True:
-                    nr_connect_tries += 1
+                    nr_connectiontries += 1
                     try:
-                        #~ print('in communication run 2')
+                        #~print('connect try',nr_connectiontries)
                         self.connect()
-                        #~ print('in communication run 3')
-                    except:
-                        #check if max nr tries is reached
-                        if nr_connect_tries < max_nr_connect_tries:
-                            continue
-                        #in-connection failed (no files are received yet via this channel)
-                        #store in database how many failed connection tries for this channel.
-                        #useful if bots is scheduled quite often, and limiting number of error-reports eg when server is down.
-                        #max_nr_retry : from channel. should be integer, but only textfields where left. so might be ''/None->use 0
-                        max_nr_retry = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
-                        if max_nr_retry:
-                            domain = 'bots_communication_failure_' + self.channeldict['idchannel']
-                            nr_retry = botslib.unique(domain)  #update nr_retry in database
-                            if nr_retry >= max_nr_retry:
-                                botslib.unique(domain,updatewith=0)    #reset nr_retry to zero
-                            else:
-                                return  #max_nr_retry is not reached. return without error
-                        raise
-                    finally:
+                    except Exception as exc:
+                        #~ print(exc)
+                        if nr_connectiontries >= maxconnectiontries:
+                            #in-connection failed (no files are received yet via this channel)
+                            #store in database how many consecutive failures for this channel.
+                            #only raise exception every multiple of maxfailures (use modulo, keep actual count)
+                            #useful if bots is scheduled quite often, and limiting number of error-reports eg when server is down.
+                            if maxfailures:
+                                nr_failures = botslib.unique(domain) # increment nr_failures counter in database
+                                if nr_failures % maxfailures != 0: 
+                                    botsglobal.logger.info('Communication failure %s on channel %s: %s',nr_failures,self.channeldict['idchannel'],msg)
+                                    return  #maxfailures is not reached. return without error
+                            raise exc from exc # just re-raise the original exception, no context chain
+                    else:
+                        #in-connection OK. Reset failure counter to zero
+                        if maxfailures:
+                            botslib.unique(domain,updatewith=0)
                         break
-                    # ~ else:
-                        # ~ #in-connection OK. Reset database entry.
-                        # ~ #max_nr_retry : get this from channel. should be integer, but only textfields where left. so might be ''/None->use 0
-                        # ~ max_nr_retry = int(self.channeldict['rsrv1']) if self.channeldict['rsrv1'] else 0
-                        # ~ if max_nr_retry:
-                            # ~ domain = 'bots_communication_failure_' + self.channeldict['idchannel']
-                            # ~ botslib.unique(domain,updatewith=0)    #set nr_retry to zero
+
                 self.incommunicate()
                 self.disconnect()
             self.postcommunicate()
@@ -267,8 +286,8 @@ class _comsession(object):
                 confirmtype = ''
                 confirmasked = False
                 charset = row['charset']
-
-                if row['editype'] == 'email-confirmation': #outgoing MDN: message is already assembled
+                # MJG 15/01/2019 BUGFIX for automaticretrycommunication
+                if row['editype'] == 'email-confirmation' or self.command == 'automaticretrycommunication': # message is already assembled
                     outfilename = row['filename']
                 else:   #assemble message: headers and payload. Bots uses simple MIME-envelope; by default payload is an attachment
                     message = email.message.Message()
@@ -413,7 +432,7 @@ class _comsession(object):
                 outfile.close()
                 nrmimesaved += 1
                 ta_file.update(statust=OK,
-                                contenttype=contenttype,
+                                contenttype=contenttype[:35], # MJG 24/08/2016 truncate to fit in db
                                 filename=outfilename,
                                 filesize=filesize,
                                 divtext=attachment_filename)
