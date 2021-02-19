@@ -5,7 +5,7 @@ import re
 from django.db import models
 from django.core.validators import validate_integer
 from django.core.exceptions import ValidationError
-from django.utils.encoding import python_2_unicode_compatible
+from django.utils.html import mark_safe
 from . import botsglobal
 from . import validate_email
 ''' Declare database tabels.
@@ -168,18 +168,18 @@ def script_link1(script,linktext):
     '''
     script = script.replace('.',os.sep,script.count('.')-1) # allow mapping script subdirs
     if os.path.exists(script):
-        return '<a href="/srcfiler/?src=%s" target="_blank">%s</a>'%(urllib.parse.quote(script),linktext)
+        return mark_safe('<a href="/srcfiler/?src=%s" target="_blank">%s</a>'%(urllib.parse.quote(script),linktext))
     else:
-        return '<img src="/media/admin/img/icon-no.svg"></img> %s'%linktext
+        return mark_safe('<img src="/media/admin/img/icon-no.svg"></img> %s'%linktext)
 
 def script_link2(script):
     ''' if script exists return "yes" icon + view link; else return "no" icon
         used in routes, channels (scripts are optional)
     '''
     if os.path.exists(script):
-        return '<a class="nowrap" href="/srcfiler/?src=%s" target="_blank"><img src="/media/admin/img/icon-yes.svg"></img> view</a>'%urllib.parse.quote(script)
+        return mark_safe('<a class="nowrap" href="/srcfiler/?src=%s" target="_blank"><img src="/media/admin/img/icon-yes.svg"></img> view</a>'%urllib.parse.quote(script))
     else:
-        return '<img src="/media/admin/img/icon-no.svg"></img>'
+        return mark_safe('<img src="/media/admin/img/icon-no.svg"></img>')
 
 
 class MultipleEmailField(models.CharField):
@@ -191,7 +191,6 @@ class TextAsInteger(models.CharField):
 #***********************************************************************************
 #******** written by webserver ********************************************************
 #***********************************************************************************
-@python_2_unicode_compatible
 class confirmrule(models.Model):
     #~ id = models.IntegerField(primary_key=True)
     active = models.BooleanField(default=False)
@@ -212,7 +211,6 @@ class confirmrule(models.Model):
         db_table = 'confirmrule'
         verbose_name = 'confirm rule'
         ordering = ['confirmtype','ruletype','negativerule','frompartner','topartner','idroute','idchannel','messagetype']
-@python_2_unicode_compatible
 class ccodetrigger(models.Model):
     ccodeid = StripCharField(primary_key=True,max_length=35,verbose_name='Type of user code')
     ccodeid_desc = models.TextField(blank=True,null=True,verbose_name='Description')
@@ -220,13 +218,11 @@ class ccodetrigger(models.Model):
         return str(self.ccodeid)
 
     def download(self):
-        return '<center><input type="button" value="&#x25BC;" class="default" onclick="document.location.href=\'/ccodecsv/?action=download&ccodeid=%s\'; return false;"></center>'%self.ccodeid
-    download.allow_tags = True
+        return mark_safe('<center><input type="button" style="padding: 2px 10px;" value="&#x25BC;" class="default" onclick="document.location.href=\'/ccodecsv/?action=download&ccodeid=%s\'; return false;"></center>'%self.ccodeid)
     download.short_description = 'Download'
 
     def upload(self):
-        return '<center><input type="button" value="&#x25B2;" class="default" onclick="document.location.href=\'/ccodecsv/?action=upload&ccodeid=%s\'; return false;"></center>'%self.ccodeid
-    upload.allow_tags = True
+        return mark_safe('<center><input type="button" style="padding: 2px 10px;" value="&#x25B2;" class="default" onclick="document.location.href=\'/ccodecsv/?action=upload&ccodeid=%s\'; return false;"></center>'%self.ccodeid)
     upload.short_description = 'Upload'
 
     def rowcount(self):
@@ -237,7 +233,6 @@ class ccodetrigger(models.Model):
         db_table = 'ccodetrigger'
         verbose_name = 'user code type'
         ordering = ['ccodeid']
-@python_2_unicode_compatible
 class ccode(models.Model):
     #~ id = models.IntegerField(primary_key=True)     #added 20091221
     ccodeid = models.ForeignKey(ccodetrigger,on_delete=models.CASCADE,verbose_name='Type of user code')
@@ -258,7 +253,6 @@ class ccode(models.Model):
         verbose_name = 'user code'
         unique_together = (('ccodeid','leftcode','rightcode'),)
         ordering = ['ccodeid','leftcode']
-@python_2_unicode_compatible
 class channel(models.Model):
     idchannel = StripCharField(max_length=35,primary_key=True)
     inorout = StripCharField(max_length=35,choices=INOROUT,verbose_name='in/out')
@@ -293,7 +287,6 @@ class channel(models.Model):
 
     def communicationscript(self):
         return script_link2(os.path.join(botsglobal.ini.get('directories','usersysabs'),'communicationscripts', self.idchannel + '.py'))
-    communicationscript.allow_tags = True
     communicationscript.short_description = 'User script'
 
     class Meta:
@@ -301,7 +294,6 @@ class channel(models.Model):
         db_table = 'channel'
     def __str__(self):
         return self.idchannel + ' (' + self.type + ')'
-@python_2_unicode_compatible
 class partner(models.Model):
     idpartner = StripCharField(max_length=35,primary_key=True,verbose_name='partner identification')
     active = models.BooleanField(default=False)
@@ -351,7 +343,6 @@ class partnergroep(partner):
         ordering = ['idpartner']
         db_table = 'partner'
 
-@python_2_unicode_compatible
 class chanpar(models.Model):
     #~ id = models.IntegerField(primary_key=True)     #added 20091221
     idpartner = models.ForeignKey(partner,on_delete=models.CASCADE,verbose_name='partner')
@@ -368,7 +359,6 @@ class chanpar(models.Model):
         verbose_name_plural = 'email address per channel'
     def __str__(self):
         return str(self.idpartner) + ' ' + str(self.idchannel) + ' ' + str(self.mail)
-@python_2_unicode_compatible
 class translate(models.Model):
     #~ id = models.IntegerField(primary_key=True)
     active = models.BooleanField(default=False)
@@ -386,7 +376,6 @@ class translate(models.Model):
 
     def tscript_link(self):
         return script_link1(os.path.join(botsglobal.ini.get('directories','usersysabs'),'mappings', self.fromeditype, self.tscript + '.py'),self.tscript)
-    tscript_link.allow_tags = True
     tscript_link.short_description = 'Mapping Script'
 
     def frommessagetype_link(self):
@@ -394,7 +383,6 @@ class translate(models.Model):
             return self.frommessagetype
         else:
             return script_link1(os.path.join(botsglobal.ini.get('directories','usersysabs'),'grammars', self.fromeditype, self.frommessagetype + '.py'),self.frommessagetype)
-    frommessagetype_link.allow_tags = True
     frommessagetype_link.short_description = 'Frommessagetype'
 
     def tomessagetype_link(self):
@@ -402,7 +390,6 @@ class translate(models.Model):
             return self.tomessagetype
         else:
             return script_link1(os.path.join(botsglobal.ini.get('directories','usersysabs'),'grammars', self.toeditype, self.tomessagetype + '.py'),self.tomessagetype)
-    tomessagetype_link.allow_tags = True
     tomessagetype_link.short_description = 'Tomessagetype'
 
     class Meta:
@@ -412,7 +399,6 @@ class translate(models.Model):
     def __str__(self):
         return str(self.fromeditype) + ' ' + str(self.frommessagetype) + ' ' + str(self.alt) + ' ' + str(self.frompartner) + ' ' + str(self.topartner)
 
-@python_2_unicode_compatible
 class routes(models.Model):
     #~ id = models.IntegerField(primary_key=True)
     idroute = StripCharField(max_length=35,db_index=True,help_text='Identification of route; a composite route consists of multiple parts having the same "idroute".')
@@ -441,7 +427,6 @@ class routes(models.Model):
 
     def routescript(self):
         return script_link2(os.path.join(botsglobal.ini.get('directories','usersysabs'),'routescripts', self.idroute + '.py'))
-    routescript.allow_tags = True
     routescript.short_description = 'Script'
 
     def indefaultrun(obj):
@@ -457,14 +442,8 @@ class routes(models.Model):
     def __str__(self):
         return str(self.idroute) + ' ' + str(self.seq)
     def translt(self):
-        if self.translateind == 0:
-            return '<img alt="%s" src="/media/images/icon-no.svg"></img>'%(self.get_translateind_display())
-        elif self.translateind == 1:
-            return '<img alt="%s" src="/media/images/icon-yes.svg"></img>'%(self.get_translateind_display())
-        elif self.translateind == 2:
-            return '<img alt="%s" src="/media/images/icon-arrow-blue.svg"></img>'%(self.get_translateind_display())
-        elif self.translateind == 3:
-            return '<img alt="%s" src="/media/images/icon-arrow-yellow.svg"></img>'%(self.get_translateind_display())
+        icons = {0:'no',1:'yes',2:'arrow-blue',3:'arrow-yellow'}
+        return mark_safe('<img alt="%s" src="/media/images/icon-%s.svg"></img>'%(self.get_translateind_display(),icons[self.translateind]))
     translt.allow_tags = True
     translt.admin_order_field = 'translateind'
 
