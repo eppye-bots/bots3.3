@@ -14,10 +14,7 @@ try:
 except ImportError:
     from xml.etree import ElementInclude as ETI
 import json as simplejson
-try:
-    from collections import OrderedDict
-except:
-    from .bots_ordereddict import OrderedDict   #python2.6
+from collections import OrderedDict
 #bots-modules
 from . import botslib
 from . import botsglobal

@@ -16,10 +16,7 @@ try:
     from xml.etree import cElementTree as ET
 except ImportError:
     from xml.etree import ElementTree as ET
-try:
-    from collections import OrderedDict
-except:
-    from .bots_ordereddict import OrderedDict
+from collections import OrderedDict
 #bots-modules
 from . import botslib
 from . import botsinit
