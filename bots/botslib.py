@@ -11,10 +11,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-try:
-    import importlib
-except:
-    from . import bots_importlib as importlib   #for python 2.6
+import importlib
 import django
 #bots-modules (no code)
 from . import botsglobal
