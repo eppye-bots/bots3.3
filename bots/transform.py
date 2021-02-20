@@ -3,11 +3,8 @@ import os
 import copy
 import collections
 import unicodedata
-try:
-    import pickle as pickle
-except ImportError:
-    import pickle
-import json as simplejson
+import pickle
+import json
 #bots-modules
 from . import botslib
 from . import botsglobal
@@ -236,7 +233,7 @@ def handle_out_message(out_translated,ta_translated):
         out_translated.ta_info.update(copy_ta_info)
         out_translated.ta_info['filesize'] = os.path.getsize(botslib.abspathdata(out_translated.ta_info['filename']))  #get filesize
         info_from_mapping = {'envelope_content':out_translated.envelope_content,'syntax':out_translated.syntax}
-        out_translated.ta_info['rsrv5'] = simplejson.dumps(info_from_mapping, ensure_ascii=False)
+        out_translated.ta_info['rsrv5'] = json.dumps(info_from_mapping, ensure_ascii=False)
     ta_translated.update(**out_translated.ta_info)  #update outmessage transaction with ta_info; statust = OK
 
 #*********************************************************************

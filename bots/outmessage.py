@@ -1,19 +1,10 @@
 import sys
 import time
-try:
-    import cdecimal as decimal
-except ImportError:
-    import decimal
+import decimal
 NODECIMAL = decimal.Decimal(1)
-try:
-    from xml.etree import cElementTree as ET
-except ImportError:
-    from xml.etree import ElementTree as ET
-try:
-    import elementtree.ElementInclude as ETI
-except ImportError:
-    from xml.etree import ElementInclude as ETI
-import json as simplejson
+from xml.etree import ElementTree as ET
+from xml.etree import ElementInclude as ETI
+import json
 from collections import OrderedDict
 #bots-modules
 from . import botslib
@@ -713,7 +704,7 @@ class json(Outmessage):
             indent = 2
         else:
             indent = None
-        simplejson.dump(jsonobject, self._outstream, skipkeys=False, ensure_ascii=False, check_circular=False, indent=indent)
+        json.dump(jsonobject, self._outstream, skipkeys=False, ensure_ascii=False, check_circular=False, indent=indent)
 
     def _closewrite(self):
         if self.write_json_list :

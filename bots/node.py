@@ -1,9 +1,6 @@
 from __future__ import print_function
 import sys
-try:
-    import cdecimal as decimal
-except ImportError:
-    import decimal
+import decimal
 #bots-modules
 from . import botslib
 from . import botsglobal

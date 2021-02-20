@@ -7,10 +7,7 @@ import traceback
 import socket
 import platform
 import collections
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 import importlib
 import django
 #bots-modules (no code)

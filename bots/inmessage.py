@@ -2,10 +2,7 @@
 import sys
 import time
 import codecs
-try:
-    from xml.etree import cElementTree as ET
-except ImportError:
-    from xml.etree import ElementTree as ET
+from xml.etree import ElementTree as ET
 import json as simplejson
 #bots-modules
 from . import botslib
@@ -860,10 +857,7 @@ class excel(csv):
         except ImportError:
             raise ImportError('Dependency failure: editype "excel" requires python library "xlrd".')
         import csv as csvlib
-        try:
-            import io
-        except:
-            import StringIO as io # Py2
+        import io
 
         self.messagegrammarread(typeofgrammarfile='grammars')
         self.ta_info['charset'] = self.defmessage.syntax['charset']      #always use charset of edi file.

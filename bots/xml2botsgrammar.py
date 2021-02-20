@@ -8,14 +8,8 @@ import sys
 import atexit
 import copy
 import logging
-try:
-    import json as simplejson
-except ImportError:
-    import simplejson
-try:
-    from xml.etree import cElementTree as ET
-except ImportError:
-    from xml.etree import ElementTree as ET
+import json
+from xml.etree import ElementTree as ET
 from collections import OrderedDict
 #bots-modules
 from . import botslib
@@ -39,7 +33,7 @@ class jsonforgrammar(inmessage.Inmessage):
         self.ta_info['checkunknownentities'] = True
         self._readcontent_edifile()
 
-        jsonobject = simplejson.loads(self.rawinput)
+        jsonobject = json.loads(self.rawinput)
         del self.rawinput
         if isinstance(jsonobject,list):
             self.root = node.Node()  #initialise empty node.

@@ -113,10 +113,7 @@ def start():
 import glob
 import shutil
 import datetime
-try:
-    from xml.etree import cElementTree as ET
-except ImportError:
-    from xml.etree import ElementTree as ET
+from xml.etree import ElementTree as ET
 #bots-modules
 from . import inmessage
 from . import outmessage

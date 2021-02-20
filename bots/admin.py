@@ -1,9 +1,6 @@
 ''' Bots configuration for django's admin site.'''
 from django import forms
-try: # new first to avoid django 1.8 deprecation warning
-    from django.forms import utils as django_forms_util
-except:
-    from django.forms import util as django_forms_util
+from django.forms import utils as django_forms_util
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
