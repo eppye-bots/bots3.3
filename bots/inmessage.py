@@ -360,7 +360,7 @@ class Inmessage(message.Message):
                 for eachmessage in self.getloop_including_mpath(*self.defmessage.nextmessage2):  #eachmessage is a list: [mpath,mpath, etc, node]
                     count += 1
                     ta_info = self.ta_info.copy()
-                    ta_info.update(eachmessage.queries[-1])
+                    ta_info.update(eachmessage[-1].queries)
                     ta_info['message_number'] = count
                     ta_info['bots_accessenvelope'] = self.root   #give mappingscript access to envelope
                     yield self._initmessagefromnode(eachmessage[-1],ta_info,self.syntax,eachmessage[:-1])   #eachmessage[:-1] is the incoming envelope content
