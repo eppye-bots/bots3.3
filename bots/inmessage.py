@@ -55,7 +55,7 @@ class Inmessage(message.Message):
     def __init__(self,ta_info):
         super(Inmessage,self).__init__(ta_info)
         self.lex_records = []       #init list of lex_records
-        # ~self.countpos = 0           #count chars in edi file. used in _lex, plus for EDIFACT set in _sniff (as UNA is not lexed)
+        self.startpos = 0           #init start of edi data. used in _lex, plus for EDIFACT set in _sniff (as UNA is not lexed)
 
     def messagegrammarread(self,typeofgrammarfile):
         ''' read grammar for a message/envelope.
@@ -621,7 +621,7 @@ class var(Inmessage):
         countpos    = 0    #count position/number of chars within line
         sep = field_sep + sfield_sep + record_sep + escape + rep_sep
 
-        for char in self.rawinput:    #get next char
+        for char in self.rawinput[self.startpos:]:    #get next char
             if char == '\n':
                 #count number lines/position; no action.
                 countline += 1      #count line
@@ -1024,7 +1024,7 @@ class edifact(var):
         self.ta_info['charset'] = found_charset
         try:
             self.rawinput = self.rawinput.decode(found_charset,self.ta_info['checkcharsetin'])
-            self.countpos = self.rawinput.find('UNB')       #import
+            self.startpos = self.rawinput.find('UNB') # so that UNA will not be lexed
         except LookupError:
             raise botslib.InMessageError('[A58]: Edifact file has unknown characterset "%(charset)s".',
                                             {'charset':found_charset})
@@ -1116,7 +1116,9 @@ class edifact(var):
                 messagetype = nodeunh.queries['messagetype']
                 #no CONTRL for CONTRL or APERAK message; check if CONTRL should be send via confirmrules
                 if messagetype[:6] in ['CONTRL','APERAK'] or not botslib.checkconfirmrules(confirmtype,idroute=self.ta_info['idroute'],idchannel=self.ta_info['fromchannel'],
-                                                                                                frompartner=sender,topartner=receiver,messagetype=messagetype):
+                                                                                                frompartner=UNB.get({'BOTSID':'UNB','S002.0004':None}),
+                                                                                                topartner=UNB.get({'BOTSID':'UNB','S003.0010':None}),
+                                                                                                messagetype=messagetype):
                     messages_not_confirm.append(nodeunh)
                 else:
                     nr_message_to_confirm += 1
