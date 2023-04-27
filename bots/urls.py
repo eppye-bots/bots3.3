@@ -14,6 +14,7 @@ urlpatterns = [
     url(r'^logout.*', logout,{'next_page': '/'}),
     url(r'^password_change/$', password_change, name='password_change'),
     url(r'^password_change/done/$', password_change_done,name='password_change_done'),
+    url(r'^dofishman.+', views.dofishman),
     #login required
     url(r'^home.*', login_required(views.home)),
     url(r'^incoming.*', login_required(views.incoming)),
@@ -41,6 +42,7 @@ urlpatterns = [
     url(r'^sendtestmail.*', superuser_required(views.sendtestmailmanagers)),
     #catch-all
     url(r'^.*', views.index),
+
     ]
 
 handler500 = views.server_error

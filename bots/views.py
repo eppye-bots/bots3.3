@@ -682,6 +682,50 @@ def delete(request,*kw,**kwargs):
                 botsglobal.logger.info('Finished deleting in configuration.')
     return django.shortcuts.redirect('/home')
 
+def dofishman(request,*kw,**kwargs):
+    print('didfishman')
+    if request.method == 'GET':
+        #needed to find out right arguments:
+        # 1. python_executable_path. Problem in virtualenv. Use setting in bots.ini if there
+        # 2. botsengine_path. Problem in apache. Use setting in bots.ini if there
+        # 3. environment (config). OK
+        # 4. commandstorun (eg --new) and routes. OK
+        python_executable_path = botsglobal.ini.get('settings','python_executable_path',sys.executable)
+        botsengine_path = botsglobal.ini.get('settings','botsengine_path',os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])),'bots-engine.py'))
+        environment = '-c' + botsglobal.ini.get('directories','config_org')
+        lijst = [python_executable_path,botsengine_path,environment]
+        # get 4. commandstorun (eg --new) and routes via request
+        if 'clparameter' in request.GET:
+            lijst.append(request.GET['clparameter'])
+
+        #either bots-engine is run directly or via jobqueue-server:
+        if botsglobal.ini.getboolean('jobqueue','enabled',False):   #run bots-engine via jobqueue-server; reports back if job is queued
+            import job2queue
+            terug = job2queue.send_job_to_jobqueue(lijst)
+            messages.add_message(request, messages.INFO, job2queue.JOBQUEUEMESSAGE2TXT[terug])
+            botsglobal.logger.info(job2queue.JOBQUEUEMESSAGE2TXT[terug])
+        else:                                                       #run bots-engine direct.; reports back if bots-engien is started succesful. **not reported: problems with running.
+            botsglobal.logger.info('Run bots-engine with parameters: "%(parameters)s"',{'parameters':unicode(lijst)})
+            #first check if another instance of bots-engine is running/if port is free
+            try:
+                engine_socket = botslib.check_if_other_engine_is_running()
+            except socket.error:
+                notification = 'Trying to run "bots-engine", but another instance of "bots-engine" is running. Please try again later.'
+                messages.add_message(request, messages.INFO, notification)
+                botsglobal.logger.info(notification)
+                return django.shortcuts.redirect('/home')
+            else:
+                engine_socket.close()   #and close the socket
+            #run engine
+            try:
+                terug = subprocess.Popen(lijst).pid
+            except Exception as msg:
+                notification = 'Errors while trying to run bots-engine: "%s".'%msg
+                messages.add_message(request, messages.INFO, notification)
+                botsglobal.logger.info(notification)
+            else:
+                messages.add_message(request, messages.INFO, 'Bots-engine is started.')
+    return django.shortcuts.redirect('/home')
 
 def runengine(request,*kw,**kwargs):
     if request.method == 'GET':
